@@ -169,6 +169,8 @@ tbody tr:hover td{background:var(--bg);}
 .btn-restore:hover{background:#BFDBFE;}
 #drop-zone.drag-over{border-color:var(--accent);background:#f0fdf4;transform:scale(1.01);}
 #drop-zone:hover{border-color:var(--accent-l);background:#f7fdf7;}
+#drop-zone-achats.drag-over,#drop-zone-ventes.drag-over{border-color:var(--accent);background:#f0fdf4;transform:scale(1.01);}
+#drop-zone-achats:hover,#drop-zone-ventes:hover{border-color:var(--accent-l);background:#f7fdf7;}
 
 @media print{
   .sidebar,.topbar,.btn,input,select,.modal-overlay,#drop-zone,.search-row{display:none!important;}
@@ -285,6 +287,7 @@ tbody tr:hover td{background:var(--bg);}
         <h2>Gestion des Produits</h2>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-ghost" onclick="printSection('products')">🖨 Imprimer</button>
+          <button class="btn btn-danger" onclick="deleteAll('products')">🗑 Tout supprimer</button>
           <button class="btn btn-primary" onclick="openModal('modal-product')">+ Ajouter produit</button>
         </div>
       </div>
@@ -320,8 +323,21 @@ tbody tr:hover td{background:var(--bg);}
         <h2>Gestion des Achats</h2>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-ghost" onclick="printSection('achats')">🖨 Imprimer</button>
+          <button class="btn btn-danger" onclick="deleteAll('achats')">🗑 Tout supprimer</button>
           <button class="btn btn-primary" onclick="openModal('modal-achat')">+ Enregistrer achat</button>
         </div>
+      </div>
+      <div id="drop-zone-achats"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="handleDropAchats(event)"
+        onclick="document.getElementById('excel-achats-input').click()"
+        style="border:2px dashed var(--border);border-radius:16px;padding:20px;text-align:center;
+               cursor:pointer;margin-bottom:20px;background:var(--white);transition:all .2s;">
+        <div style="font-size:1.8rem;margin-bottom:6px;">📥</div>
+        <div style="font-weight:700;margin-bottom:3px;">Glissez votre fichier Excel ici</div>
+        <div style="font-size:.82rem;color:var(--muted);">ou cliquez — colonnes : Date · Code · Quantité · Prix d'Achat</div>
+        <input type="file" id="excel-achats-input" accept=".xlsx,.xls" style="display:none" onchange="importAchatsFromExcel(this.files[0])"/>
       </div>
       <div class="search-row">
         <input class="search-input" placeholder="Rechercher..." oninput="filterTable('achats-table', this.value)"/>
@@ -340,8 +356,21 @@ tbody tr:hover td{background:var(--bg);}
         <h2>Gestion des Ventes</h2>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-ghost" onclick="printSection('ventes')">🖨 Imprimer</button>
+          <button class="btn btn-danger" onclick="deleteAll('ventes')">🗑 Tout supprimer</button>
           <button class="btn btn-primary" onclick="openModal('modal-vente')">+ Enregistrer vente</button>
         </div>
+      </div>
+      <div id="drop-zone-ventes"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="handleDropVentes(event)"
+        onclick="document.getElementById('excel-ventes-input').click()"
+        style="border:2px dashed var(--border);border-radius:16px;padding:20px;text-align:center;
+               cursor:pointer;margin-bottom:20px;background:var(--white);transition:all .2s;">
+        <div style="font-size:1.8rem;margin-bottom:6px;">🛒</div>
+        <div style="font-weight:700;margin-bottom:3px;">Glissez votre fichier Excel ici</div>
+        <div style="font-size:.82rem;color:var(--muted);">ou cliquez — colonnes : Date · Code · Quantité · Prix de Vente</div>
+        <input type="file" id="excel-ventes-input" accept=".xlsx,.xls" style="display:none" onchange="importVentesFromExcel(this.files[0])"/>
       </div>
       <div class="search-row">
         <input class="search-input" placeholder="Rechercher..." oninput="filterTable('ventes-table', this.value)"/>
@@ -471,11 +500,11 @@ tbody tr:hover td{background:var(--bg);}
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Prix d'Achat (DT)</label>
+          <label>Prix d'Achat (DA)</label>
           <input type="number" id="p-prix-achat" placeholder="0" min="0"/>
         </div>
         <div class="form-group">
-          <label>Prix de Vente (DT)</label>
+          <label>Prix de Vente (DA)</label>
           <input type="number" id="p-prix-vente" placeholder="0" min="0"/>
         </div>
       </div>
@@ -514,12 +543,12 @@ tbody tr:hover td{background:var(--bg);}
           <input type="number" id="a-qty" placeholder="1" min="1" oninput="calcAchatTotal()"/>
         </div>
         <div class="form-group">
-          <label>Prix d'Achat (DT)</label>
+          <label>Prix d'Achat (DA)</label>
           <input type="number" id="a-prix" placeholder="0" oninput="calcAchatTotal()"/>
         </div>
       </div>
       <div class="form-group">
-        <label>Total (DT)</label>
+        <label>Total (DA)</label>
         <input type="number" id="a-total" placeholder="0" readonly style="background:var(--bg3);"/>
       </div>
       <div class="modal-actions">
@@ -557,12 +586,12 @@ tbody tr:hover td{background:var(--bg);}
           <input type="number" id="v-qty" placeholder="1" min="1" oninput="calcVenteTotal()"/>
         </div>
         <div class="form-group">
-          <label>Prix de Vente (DT)</label>
+          <label>Prix de Vente (DA)</label>
           <input type="number" id="v-prix" placeholder="0" oninput="calcVenteTotal()"/>
         </div>
       </div>
       <div class="form-group">
-        <label>Total (DT)</label>
+        <label>Total (DA)</label>
         <input type="number" id="v-total" placeholder="0" readonly style="background:var(--bg3);"/>
       </div>
       <div class="modal-actions">
@@ -576,20 +605,270 @@ tbody tr:hover td{background:var(--bg);}
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- CLOUD AUTH SCREEN -->
+<div id="cloud-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;
+  align-items:center;justify-content:center;padding:24px;">
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:24px;
+    padding:36px;max-width:480px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.12);max-height:95vh;overflow-y:auto;">
+    <div style="font-family:var(--font-head);font-size:1.4rem;font-weight:800;margin-bottom:4px;">☁ Multi-Appareils</div>
+    <div style="color:var(--muted);font-size:.85rem;margin-bottom:16px;line-height:1.6;">
+      Accédez à vos données depuis n'importe quel appareil.
+    </div>
+
+    <!-- JSONBIN KEY STEP -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px;font-size:.82rem;line-height:1.8;color:var(--text);">
+      <strong style="color:var(--accent);">Étape 1 — Clé gratuite JSONBin (1 seule fois)</strong><br/>
+      1. Allez sur <a href="https://jsonbin.io" target="_blank" style="color:var(--accent);font-weight:600;">jsonbin.io</a> → <strong>Sign Up</strong> (gratuit)<br/>
+      2. Après connexion → cliquez <strong>API Keys</strong> dans le menu<br/>
+      3. Copiez la <strong>Master Key</strong> (commence par $2a$10$...)<br/>
+      4. Collez-la ci-dessous
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">JSONBin Master Key</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="auth-jbkey" type="password" placeholder="$2a$10$..."
+          style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--font-mono);font-size:.82rem;color:var(--text);outline:none;"
+          oninput="this.value=this.value.trim()"/>
+        <button type="button" onclick="const i=document.getElementById('auth-jbkey');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'"
+          style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;font-size:.9rem;">👁</button>
+      </div>
+      <div style="font-size:.75rem;color:var(--muted);margin-top:5px;">
+        Trouvez-la sur <strong>jsonbin.io → API Keys</strong> après inscription.
+      </div>
+    </div>
+
+    <!-- DIVIDER -->
+    <div style="border-top:1px solid var(--border);margin:16px 0;position:relative;text-align:center;">
+      <span style="background:var(--white);padding:0 10px;font-size:.75rem;color:var(--muted);position:relative;top:-9px;">Étape 2 — Votre compte magasin</span>
+    </div>
+
+    <!-- TABS -->
+    <div style="display:flex;gap:6px;margin-bottom:16px;background:var(--bg2);padding:5px;border-radius:12px;">
+      <button id="tab-login" onclick="switchAuthTab('login')"
+        style="flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;font-weight:700;cursor:pointer;background:var(--dark);color:#fff;">
+        Se connecter
+      </button>
+      <button id="tab-signup" onclick="switchAuthTab('signup')"
+        style="flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);">
+        Créer un compte
+      </button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">
+      <div id="name-field" style="display:none;">
+        <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Nom du magasin</label>
+        <input id="auth-name" type="text" placeholder="ex: Magasin Papa"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--font-body);font-size:.9rem;color:var(--text);outline:none;"/>
+      </div>
+      <div>
+        <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Identifiant</label>
+        <input id="auth-user" type="text" placeholder="ex: magasin-ali"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--font-body);font-size:.9rem;color:var(--text);outline:none;"/>
+      </div>
+      <div>
+        <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Mot de passe</label>
+        <input id="auth-pass" type="password" placeholder="••••••••"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--font-body);font-size:.9rem;color:var(--text);outline:none;"
+          onkeydown="if(event.key==='Enter') doAuth()"/>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:10px;">
+      <button onclick="skipCloud()" id="auth-skip-btn"
+        style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:var(--font-body);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--muted);">
+        Local seulement
+      </button>
+      <button onclick="doAuth()" id="auth-btn"
+        style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px;font-family:var(--font-body);font-size:.9rem;font-weight:700;cursor:pointer;">
+        Se connecter
+      </button>
+    </div>
+    <div id="auth-status" style="display:none;border-radius:10px;padding:11px 14px;font-size:.83rem;line-height:1.5;"></div>
+  </div>
+</div>
+
+<style>
+.cloud-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);
+  font-size:.7rem;padding:5px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all .2s;}
+.cloud-badge.online{background:#dcfce7;border-color:#bbf7d0;color:#166534;}
+.cloud-badge.loading{background:#fef9c3;border-color:#fde68a;color:#854d0e;}
+.cloud-badge.local{background:var(--bg2);color:var(--muted);}
+</style>
+
 <script>
-// ── DB (localStorage) ──────────────────────────────────────────────
-const DB = {
-  get: k => JSON.parse(localStorage.getItem(k) || '[]'),
-  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+// ── CLOUD AUTH (JSONBin — user provides their own key) ─────────────
+const CLOUD_KEY = 'cloud_cfg';
+let useCloud = false, cloudBinId = '', cloudUser = '';
+const KEYS = ['products','achats','ventes','trash_products','trash_achats','trash_ventes'];
+
+// Key: always prefer the live input field, fall back to saved
+function getJbKey(){
+  const inputEl = document.getElementById('auth-jbkey');
+  const inputVal = inputEl ? inputEl.value.trim() : '';
+  return inputVal || getSavedAuth()?.jbkey || '';
+}
+
+const LocalDB = {
+  get: k => { try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){return [];} },
+  set: (k,v) => localStorage.setItem(k, JSON.stringify(v)),
 };
-
+const DB = {
+  get: k => LocalDB.get(k),
+  set: (k,v) => { LocalDB.set(k,v); if(useCloud) cloudPush().catch(()=>{}); },
+};
 function getProducts(){ return DB.get('products'); }
-function getAchats(){ return DB.get('achats'); }
-function getVentes(){ return DB.get('ventes'); }
+function getAchats()  { return DB.get('achats'); }
+function getVentes()  { return DB.get('ventes'); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 
-function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function getSavedAuth(){ try{ return JSON.parse(localStorage.getItem(CLOUD_KEY)||'null'); }catch(e){return null;} }
+function saveAuth(o){ localStorage.setItem(CLOUD_KEY, JSON.stringify(o)); }
 
-// ── SEED with Excel data if empty ──────────────────────────────────
+async function makeHash(user, pass){
+  const enc = new TextEncoder().encode(user.toLowerCase().trim()+'::'+pass);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,20);
+}
+
+function getAllLocal(){ const o={}; KEYS.forEach(k=>o[k]=LocalDB.get(k)); return o; }
+
+async function jbReq(url, method='GET', body=null, extra={}){
+  const k = getJbKey();
+  const h={'Content-Type':'application/json','X-Master-Key':k,'X-Access-Key':k,...extra};
+  const opts={method,headers:h};
+  if(body) opts.body=JSON.stringify(body);
+  const r=await fetch(url,opts);
+  const t=await r.text();
+  try{return{ok:r.ok,status:r.status,data:JSON.parse(t)};}
+  catch(e){return{ok:r.ok,status:r.status,data:t};}
+}
+
+async function cloudPush(){
+  if(!cloudBinId) return;
+  await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}`,'PUT',getAllLocal(),{'X-Bin-Versioning':'false'});
+}
+async function cloudPull(){
+  const r=await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
+  if(!r.ok) throw new Error('Pull failed '+r.status);
+  const data=r.data?.record||{};
+  KEYS.forEach(k=>{if(Array.isArray(data[k]))LocalDB.set(k,data[k]);});
+}
+async function createBin(name){
+  const r=await jbReq('https://api.jsonbin.io/v3/b','POST',getAllLocal(),{'X-Bin-Name':name,'X-Bin-Private':'true'});
+  if(!r.ok){
+    const msg = r.data?.message || JSON.stringify(r.data);
+    if(r.status===401||r.status===403) throw new Error('Master Key incorrecte ('+r.status+')');
+    throw new Error('Création échouée ('+r.status+'): '+msg);
+  }
+  return r.data?.metadata?.id;
+}
+// ── AUTH UI ───────────────────────────────────────────────────────
+let authMode='login';
+function switchAuthTab(mode){
+  authMode=mode;
+  const s=mode==='signup';
+  document.getElementById('name-field').style.display=s?'block':'none';
+  document.getElementById('tab-login').style.cssText='flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;cursor:pointer;'+(s?'background:transparent;color:var(--muted);font-weight:600;':'background:var(--dark);color:#fff;font-weight:700;');
+  document.getElementById('tab-signup').style.cssText='flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;cursor:pointer;'+(s?'background:var(--dark);color:#fff;font-weight:700;':'background:transparent;color:var(--muted);font-weight:600;');
+  document.getElementById('auth-btn').textContent=s?'Créer le compte':'Se connecter';
+  document.getElementById('auth-status').style.display='none';
+}
+function setAuthStatus(msg,type='loading'){
+  const el=document.getElementById('auth-status');
+  const s={loading:'background:#fefce8;border:1px solid #fde68a;color:#854d0e;',success:'background:#dcfce7;border:1px solid #bbf7d0;color:#166534;',error:'background:#fee2e2;border:1px solid #fecaca;color:#991b1b;'};
+  el.style.cssText='display:block;border-radius:10px;padding:11px 14px;font-size:.83rem;line-height:1.5;'+(s[type]||s.loading);
+  el.innerHTML=msg;
+}
+function setAuthBusy(busy){
+  const b=document.getElementById('auth-btn'),s=document.getElementById('auth-skip-btn');
+  b.disabled=s.disabled=busy; b.style.opacity=busy?'.65':'1';
+  if(!busy) b.textContent=authMode==='signup'?'Créer le compte':'Se connecter';
+  else b.textContent='↻ Chargement...';
+}
+
+async function doAuth(){
+  const jbkey = document.getElementById('auth-jbkey').value.trim();
+  const user  = document.getElementById('auth-user').value.trim();
+  const pass  = document.getElementById('auth-pass').value.trim();
+  const name  = document.getElementById('auth-name').value.trim();
+  if(!jbkey){ setAuthStatus('⚠ Collez votre JSONBin Master Key.','error'); return; }
+  if(!user||!pass){ setAuthStatus('⚠ Identifiant et mot de passe requis.','error'); return; }
+  setAuthBusy(true);
+
+  try{
+    // The bin name encodes user+pass — acts as the "account"
+    const hash = await makeHash(user, pass);
+    const binName = 'mm-'+hash;
+
+    if(authMode === 'signup'){
+      setAuthStatus('⏳ Création du compte...','loading');
+      // Create a new bin — if key is wrong this will throw 401
+      cloudBinId = await createBin(binName);
+      saveAuth({user, binId:cloudBinId, label:name||user, jbkey});
+
+    } else {
+      // Login: the binId was saved locally on first signup on this device
+      // OR user must provide the binId (we store it after first signup)
+      setAuthStatus('⏳ Connexion...','loading');
+      const saved = getSavedAuth();
+      if(saved && saved.user===user && saved.binId){
+        // Already have the binId saved
+        cloudBinId = saved.binId;
+      } else {
+        // Try to find by creating a temp read — use hash as bin name lookup
+        // Since we can't list, we store binId in a known "index bin" per key
+        setAuthStatus('⏳ Recherche du compte...','loading');
+        const indexRes = await jbReq(`https://api.jsonbin.io/v3/b/${binName}/latest`);
+        if(indexRes.ok && indexRes.data?.record?.binId){
+          cloudBinId = indexRes.data.record.binId;
+        } else {
+          setAuthStatus('⚠ Compte introuvable sur cet appareil. Utilisez "Créer un compte" ou reconnectez-vous depuis l\'appareil d\'origine.','error');
+          setAuthBusy(false); return;
+        }
+      }
+      saveAuth({user, binId:cloudBinId, label:user, jbkey});
+      setAuthStatus('⏳ Synchronisation...','loading');
+      await cloudPull();
+    }
+
+    useCloud=true; cloudUser=user;
+    setAuthStatus('✓ Connecté !','success');
+    setBadge('online');
+    setTimeout(()=>{
+      document.getElementById('cloud-screen').style.display='none';
+      launchApp(); showToast('☁ Connecté — '+user);
+    }, 600);
+
+  } catch(e){
+    let m = e.message||'Erreur inconnue', hint='';
+    if(m.includes('401')||m.includes('403')||m.includes('InvalidKey')||m.includes('Invalid'))
+      hint='<br/>→ Master Key incorrecte — vérifiez sur jsonbin.io → API Keys.';
+    else if(m.includes('fetch')||m.includes('Failed')||m.includes('Load'))
+      hint='<br/>→ Vérifiez votre connexion internet.';
+    setAuthStatus('⚠ '+m+hint,'error');
+    setAuthBusy(false);
+  }
+}
+function skipCloud(){
+  document.getElementById('cloud-screen').style.display='none';
+  launchApp();
+}
+function setBadge(state){
+  const b=document.getElementById('cloud-badge'); if(!b)return;
+  b.className='cloud-badge '+state;
+  const a=getSavedAuth();
+  b.innerHTML=state==='online'?'☁ '+(a?.label||a?.user||''):state==='loading'?'↻ Sync...':'💾 Local';
+}
+function showCloudScreen(){
+  const s=document.getElementById('cloud-screen');
+  s.style.cssText='display:flex;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;padding:24px;';
+  const a=getSavedAuth();
+  if(a?.user) document.getElementById('auth-user').value=a.user;
+  if(a?.jbkey) document.getElementById('auth-jbkey').value=a.jbkey;
+}
+
+// ── SEED DATA ─────────────────────────────────────────────────────
 function seedData(){
   if(getProducts().length > 0) return;
   const products = [
@@ -598,17 +877,9 @@ function seedData(){
     {id:uid(), code:'CRD45V4', article:'Four', marque:'Condor', stock:2, prixAchat:1530, prixVente:1720, icon:'🍳'},
   ];
   DB.set('products', products);
-
   const p0 = products[0].id;
-  const achats = [
-    {id:uid(), date:'2026-03-14', productId:p0, code:'RDNE550S', article:'Réfrigérateur', marque:'beKo', qty:2, prix:1530, total:3060},
-  ];
-  DB.set('achats', achats);
-
-  const ventes = [
-    {id:uid(), date:'2026-03-15', productId:p0, code:'RDNE550S', article:'Réfrigérateur', marque:'beKo', qty:10, prix:1720, total:17200},
-  ];
-  DB.set('ventes', ventes);
+  DB.set('achats', [{id:uid(), date:'2026-03-14', productId:p0, code:'RDNE550S', article:'Réfrigérateur', marque:'beKo', qty:2, prix:1530, total:3060}]);
+  DB.set('ventes', [{id:uid(), date:'2026-03-15', productId:p0, code:'RDNE550S', article:'Réfrigérateur', marque:'beKo', qty:10, prix:1720, total:17200}]);
 }
 
 // ── NAVIGATION ─────────────────────────────────────────────────────
@@ -725,10 +996,12 @@ function closeModal(id){
   if(id==='modal-achat'){
     ['achat-edit-id','a-date','a-qty','a-prix','a-total'].forEach(f=>document.getElementById(f).value='');
     document.getElementById('a-product').value='';
+    document.getElementById('modal-achat').querySelector('h3').textContent='Enregistrer un Achat';
   }
   if(id==='modal-vente'){
     ['vente-edit-id','v-date','v-qty','v-prix','v-total'].forEach(f=>document.getElementById(f).value='');
     document.getElementById('v-product').value='';
+    document.getElementById('modal-vente').querySelector('h3').textContent='Enregistrer une Vente';
   }
 }
 
@@ -799,7 +1072,10 @@ function renderAchats(){
     <td>${a.qty}</td>
     <td>${fmt(a.prix)} DT</td>
     <td><strong>${fmt(a.total)} DT</strong></td>
-    <td><button class="btn btn-danger btn-sm" onclick="deleteAchat('${a.id}')">✕</button></td>
+    <td style="display:flex;gap:6px;">
+      <button class="btn btn-ghost btn-sm" onclick="editAchat('${a.id}')">✏</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteAchat('${a.id}')">✕</button>
+    </td>
   </tr>`).join('');
 }
 
@@ -828,21 +1104,39 @@ function calcAchatTotal(){
 }
 
 function saveAchat(){
-  const pid = document.getElementById('a-product').value;
+  const editId = document.getElementById('achat-edit-id').value;
+  const pid  = document.getElementById('a-product').value;
   const date = document.getElementById('a-date').value;
-  const qty = Number(document.getElementById('a-qty').value);
+  const qty  = Number(document.getElementById('a-qty').value);
   const prix = Number(document.getElementById('a-prix').value);
   if(!pid||!qty){ showToast('Remplissez tous les champs','error'); return; }
   const p = getProducts().find(x=>x.id===pid);
-  const achat = {
-    id:uid(), date, productId:pid,
-    code:p.code, article:p.article, marque:p.marque,
-    qty, prix, total:qty*prix
-  };
-  DB.set('achats', [...getAchats(), achat]);
+  const data = { date, productId:pid, code:p.code, article:p.article, marque:p.marque, qty, prix, total:qty*prix };
+  let achats = getAchats();
+  if(editId){
+    achats = achats.map(a=>a.id===editId ? {...a,...data} : a);
+    showToast('Achat modifié ✓');
+  } else {
+    achats.push({id:uid(),...data});
+    showToast('Achat enregistré ✓');
+  }
+  DB.set('achats', achats);
   closeModal('modal-achat');
   renderAchats(); updateBadges();
-  showToast('Achat enregistré ✓');
+}
+
+function editAchat(id){
+  const a = getAchats().find(x=>x.id===id);
+  if(!a) return;
+  populateProductSelects();
+  document.getElementById('achat-edit-id').value = id;
+  document.getElementById('modal-achat').querySelector('h3').textContent = 'Modifier Achat';
+  document.getElementById('a-date').value  = a.date||'';
+  document.getElementById('a-product').value = a.productId||'';
+  document.getElementById('a-qty').value   = a.qty;
+  document.getElementById('a-prix').value  = a.prix;
+  document.getElementById('a-total').value = a.total;
+  openModal('modal-achat');
 }
 
 function deleteAchat(id){
@@ -870,7 +1164,10 @@ function renderVentes(){
     <td>${v.qty}</td>
     <td>${fmt(v.prix)} DT</td>
     <td><strong class="profit-positive">${fmt(v.total)} DT</strong></td>
-    <td><button class="btn btn-danger btn-sm" onclick="deleteVente('${v.id}')">✕</button></td>
+    <td style="display:flex;gap:6px;">
+      <button class="btn btn-ghost btn-sm" onclick="editVente('${v.id}')">✏</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteVente('${v.id}')">✕</button>
+    </td>
   </tr>`).join('');
 }
 
@@ -887,23 +1184,44 @@ function calcVenteTotal(){
 }
 
 function saveVente(){
-  const pid = document.getElementById('v-product').value;
+  const editId = document.getElementById('vente-edit-id').value;
+  const pid  = document.getElementById('v-product').value;
   const date = document.getElementById('v-date').value;
-  const qty = Number(document.getElementById('v-qty').value);
+  const qty  = Number(document.getElementById('v-qty').value);
   const prix = Number(document.getElementById('v-prix').value);
   if(!pid||!qty){ showToast('Remplissez tous les champs','error'); return; }
   const p = getProducts().find(x=>x.id===pid);
+  // For stock check on edit, exclude current record's qty
   const currentStock = getStockForProduct(pid, p.stock);
-  if(qty > currentStock){ showToast(`Stock insuffisant (${currentStock} disponibles)`,'error'); return; }
-  const vente = {
-    id:uid(), date, productId:pid,
-    code:p.code, article:p.article, marque:p.marque,
-    qty, prix, total:qty*prix
-  };
-  DB.set('ventes', [...getVentes(), vente]);
+  const oldQty = editId ? (getVentes().find(v=>v.id===editId)?.qty||0) : 0;
+  const availableStock = currentStock + (editId ? oldQty : 0);
+  if(qty > availableStock){ showToast(`Stock insuffisant (${availableStock} disponibles)`,'error'); return; }
+  const data = { date, productId:pid, code:p.code, article:p.article, marque:p.marque, qty, prix, total:qty*prix };
+  let ventes = getVentes();
+  if(editId){
+    ventes = ventes.map(v=>v.id===editId ? {...v,...data} : v);
+    showToast('Vente modifiée ✓');
+  } else {
+    ventes.push({id:uid(),...data});
+    showToast('Vente enregistrée ✓');
+  }
+  DB.set('ventes', ventes);
   closeModal('modal-vente');
   renderVentes(); updateBadges();
-  showToast('Vente enregistrée ✓');
+}
+
+function editVente(id){
+  const v = getVentes().find(x=>x.id===id);
+  if(!v) return;
+  populateProductSelects();
+  document.getElementById('vente-edit-id').value = id;
+  document.getElementById('modal-vente').querySelector('h3').textContent = 'Modifier Vente';
+  document.getElementById('v-date').value    = v.date||'';
+  document.getElementById('v-product').value = v.productId||'';
+  document.getElementById('v-qty').value     = v.qty;
+  document.getElementById('v-prix').value    = v.prix;
+  document.getElementById('v-total').value   = v.total;
+  openModal('modal-vente');
 }
 
 function deleteVente(id){
@@ -1042,6 +1360,30 @@ function showToast(msg, type='success'){
   t.textContent = msg;
   t.className = `toast ${type} show`;
   setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── DELETE ALL ──────────────────────────────────────────────────────
+function deleteAll(type){
+  const labels = {products:'tous les produits', achats:'tous les achats', ventes:'toutes les ventes'};
+  const counts = {products:getProducts().length, achats:getAchats().length, ventes:getVentes().length};
+  if(counts[type]===0){ showToast('La liste est déjà vide','error'); return; }
+  if(!confirm(`Envoyer ${labels[type]} (${counts[type]} élément(s)) à la corbeille ?`)) return;
+  const now = new Date().toLocaleString('fr-FR');
+  if(type==='products'){
+    DB.set('trash_products', [...getTrash('products'), ...getProducts().map(p=>({...p,deletedAt:now}))]);
+    DB.set('products',[]);
+    renderProducts();
+  } else if(type==='achats'){
+    DB.set('trash_achats', [...getTrash('achats'), ...getAchats().map(a=>({...a,deletedAt:now}))]);
+    DB.set('achats',[]);
+    renderAchats();
+  } else if(type==='ventes'){
+    DB.set('trash_ventes', [...getTrash('ventes'), ...getVentes().map(v=>({...v,deletedAt:now}))]);
+    DB.set('ventes',[]);
+    renderVentes();
+  }
+  updateBadges();
+  showToast(`${counts[type]} élément(s) déplacé(s) vers la corbeille 🗑`);
 }
 
 // ── TRASH ──────────────────────────────────────────────────────────
@@ -1199,20 +1541,48 @@ function emptyTrash(){
 }
 
 // ── INIT ───────────────────────────────────────────────────────────
-function init(){
+function launchApp(){
   seedData();
-  // Date display
   const now = new Date();
   const opts = {weekday:'long',year:'numeric',month:'long',day:'numeric'};
-  const dateStr = now.toLocaleDateString('fr-FR', opts);
-  document.getElementById('topbar-date').textContent = dateStr;
+  document.getElementById('topbar-date').textContent = now.toLocaleDateString('fr-FR', opts);
   document.getElementById('sidebar-date').textContent = now.getFullYear();
   renderDashboard();
   updateBadges();
-  // Close modals on overlay click
   document.querySelectorAll('.modal-overlay').forEach(o=>{
     o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
   });
+}
+
+async function init(){
+  // Inject cloud badge into topbar
+  const topbarRight = document.getElementById('topbar-date').parentElement;
+  const badge = document.createElement('div');
+  badge.id = 'cloud-badge';
+  badge.className = 'cloud-badge local';
+  badge.innerHTML = '💾 Local';
+  badge.title = 'Cliquez pour changer de compte';
+  badge.onclick = showCloudScreen;
+  topbarRight.prepend(badge);
+
+  const auth = getSavedAuth();
+  if(auth && auth.binId){
+    cloudBinId = auth.binId;
+    cloudUser  = auth.user||'';
+    try{
+      setBadge('loading');
+      await cloudPull();
+      useCloud = true;
+      setBadge('online');
+      showToast('☁ Données synchronisées');
+    } catch(e){
+      setBadge('local');
+      showToast('Cloud indisponible — mode local','error');
+    }
+    launchApp();
+  } else {
+    showCloudScreen();
+  }
 }
 
 init();
@@ -1255,6 +1625,7 @@ function handleDrop(e){
 
 function importFromExcel(file){
   if(!file) return;
+  document.getElementById('excel-import-input').value = '';
   const reader = new FileReader();
   reader.onload = function(e){
     try {
@@ -1324,6 +1695,141 @@ function confirmImport(){
   importedRows=[];
   renderProducts(); updateBadges();
   showToast(`Import OK — ${added} ajouté(s)${updated?' · '+updated+' mis à jour':''}${skipped?' · '+skipped+' ignoré(s)':''}`);
+}
+
+// ── IMPORT ACHATS FROM EXCEL ────────────────────────────────────────
+function handleDropAchats(e){
+  e.preventDefault();
+  document.getElementById('drop-zone-achats').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if(file) importAchatsFromExcel(file);
+}
+
+function importAchatsFromExcel(file){
+  if(!file) return;
+  document.getElementById('excel-achats-input').value='';
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const wb = XLSX.read(e.target.result,{type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!raw.length){ showToast('Fichier vide ou non reconnu','error'); return; }
+
+      const keys = Object.keys(raw[0]).map(k=>k.trim());
+      const find = (...words) => keys.find(k=>words.some(w=>k.toLowerCase().includes(w)))||null;
+      const colDate  = find('date');
+      const colCode  = find('code');
+      const colQty   = find('qté','quantit','qty','quantité');
+      const colPrix  = find('achat','prix');
+
+      const products = getProducts();
+      let added=0, skipped=0;
+      const newAchats = [...getAchats()];
+
+      raw.forEach(r=>{
+        const code = String(r[colCode]||'').trim();
+        const qty  = Number(r[colQty])||0;
+        const prix = Number(r[colPrix])||0;
+        if(!code||!qty) { skipped++; return; }
+
+        const prod = products.find(p=>p.code.toLowerCase()===code.toLowerCase());
+        if(!prod){ skipped++; return; }
+
+        const dateRaw = r[colDate];
+        let date = '';
+        if(dateRaw){
+          if(typeof dateRaw==='number'){
+            // Excel serial date
+            const d = new Date(Math.round((dateRaw - 25569)*86400*1000));
+            date = d.toISOString().split('T')[0];
+          } else {
+            const parsed = new Date(dateRaw);
+            date = isNaN(parsed)?String(dateRaw).slice(0,10):parsed.toISOString().split('T')[0];
+          }
+        }
+
+        newAchats.push({
+          id:uid(), date, productId:prod.id,
+          code:prod.code, article:prod.article, marque:prod.marque,
+          qty, prix, total:qty*prix
+        });
+        added++;
+      });
+
+      DB.set('achats', newAchats);
+      renderAchats(); updateBadges();
+      showToast(`Import Achats OK — ${added} ajouté(s)${skipped?' · '+skipped+' ignoré(s)':''}`);
+    } catch(err){ showToast('Erreur: '+err.message,'error'); }
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ── IMPORT VENTES FROM EXCEL ────────────────────────────────────────
+function handleDropVentes(e){
+  e.preventDefault();
+  document.getElementById('drop-zone-ventes').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if(file) importVentesFromExcel(file);
+}
+
+function importVentesFromExcel(file){
+  if(!file) return;
+  document.getElementById('excel-ventes-input').value='';
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const wb = XLSX.read(e.target.result,{type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!raw.length){ showToast('Fichier vide ou non reconnu','error'); return; }
+
+      const keys = Object.keys(raw[0]).map(k=>k.trim());
+      const find = (...words) => keys.find(k=>words.some(w=>k.toLowerCase().includes(w)))||null;
+      const colDate  = find('date');
+      const colCode  = find('code');
+      const colQty   = find('qté','quantit','qty','quantité');
+      const colPrix  = find('vente','prix');
+
+      const products = getProducts();
+      let added=0, skipped=0;
+      const newVentes = [...getVentes()];
+
+      raw.forEach(r=>{
+        const code = String(r[colCode]||'').trim();
+        const qty  = Number(r[colQty])||0;
+        const prix = Number(r[colPrix])||0;
+        if(!code||!qty){ skipped++; return; }
+
+        const prod = products.find(p=>p.code.toLowerCase()===code.toLowerCase());
+        if(!prod){ skipped++; return; }
+
+        const dateRaw = r[colDate];
+        let date = '';
+        if(dateRaw){
+          if(typeof dateRaw==='number'){
+            const d = new Date(Math.round((dateRaw - 25569)*86400*1000));
+            date = d.toISOString().split('T')[0];
+          } else {
+            const parsed = new Date(dateRaw);
+            date = isNaN(parsed)?String(dateRaw).slice(0,10):parsed.toISOString().split('T')[0];
+          }
+        }
+
+        newVentes.push({
+          id:uid(), date, productId:prod.id,
+          code:prod.code, article:prod.article, marque:prod.marque,
+          qty, prix, total:qty*prix
+        });
+        added++;
+      });
+
+      DB.set('ventes', newVentes);
+      renderVentes(); updateBadges();
+      showToast(`Import Ventes OK — ${added} ajouté(s)${skipped?' · '+skipped+' ignoré(s)':''}`);
+    } catch(err){ showToast('Erreur: '+err.message,'error'); }
+  };
+  reader.readAsBinaryString(file);
 }
 
 // ── PRINT ───────────────────────────────────────────────────────────

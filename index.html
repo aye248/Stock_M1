@@ -866,6 +866,13 @@ function showCloudScreen(){
   if(a?.binId)  document.getElementById('login-binid').value = a.binId;
 }
 
+function logout(){
+  if(!confirm('Se déconnecter ? Les données locales de cet appareil seront effacées.')) return;
+  localStorage.clear();
+  useCloud = false; cloudBinId = '';
+  setTimeout(()=>location.reload(), 300);
+}
+
 // ── SEED DATA ─────────────────────────────────────────────────────
 function seedData(){
   if(getProducts().length > 0) return;

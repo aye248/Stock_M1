@@ -230,7 +230,17 @@ tbody tr:hover td{background:var(--bg);}
       <span class="nav-badge" id="badge-trash">0</span>
     </button>
   </nav>
-  <div class="sidebar-footer" id="sidebar-date"></div>
+  <div class="sidebar-footer" style="padding:12px;display:flex;flex-direction:column;gap:8px;">
+    <button onclick="logout()" id="logout-btn" style="display:none;width:100%;background:rgba(192,57,43,.15);
+      border:1px solid rgba(192,57,43,.3);border-radius:10px;padding:10px 14px;color:#f87171;
+      font-family:var(--font-body);font-size:.82rem;font-weight:600;cursor:pointer;
+      text-align:left;transition:background .2s;"
+      onmouseover="this.style.background='rgba(192,57,43,.25)'"
+      onmouseout="this.style.background='rgba(192,57,43,.15)'">
+      ⎋ Se déconnecter
+    </button>
+    <div id="sidebar-date" style="font-family:var(--font-mono);font-size:.7rem;color:rgba(255,255,255,.2);padding:4px 4px 0;"></div>
+  </div>
 </aside>
 
 <!-- MAIN -->
@@ -500,11 +510,11 @@ tbody tr:hover td{background:var(--bg);}
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Prix d'Achat (DA)</label>
+          <label>Prix d'Achat (DT)</label>
           <input type="number" id="p-prix-achat" placeholder="0" min="0"/>
         </div>
         <div class="form-group">
-          <label>Prix de Vente (DA)</label>
+          <label>Prix de Vente (DT)</label>
           <input type="number" id="p-prix-vente" placeholder="0" min="0"/>
         </div>
       </div>
@@ -543,12 +553,12 @@ tbody tr:hover td{background:var(--bg);}
           <input type="number" id="a-qty" placeholder="1" min="1" oninput="calcAchatTotal()"/>
         </div>
         <div class="form-group">
-          <label>Prix d'Achat (DA)</label>
+          <label>Prix d'Achat (DT)</label>
           <input type="number" id="a-prix" placeholder="0" oninput="calcAchatTotal()"/>
         </div>
       </div>
       <div class="form-group">
-        <label>Total (DA)</label>
+        <label>Total (DT)</label>
         <input type="number" id="a-total" placeholder="0" readonly style="background:var(--bg3);"/>
       </div>
       <div class="modal-actions">
@@ -586,12 +596,12 @@ tbody tr:hover td{background:var(--bg);}
           <input type="number" id="v-qty" placeholder="1" min="1" oninput="calcVenteTotal()"/>
         </div>
         <div class="form-group">
-          <label>Prix de Vente (DA)</label>
+          <label>Prix de Vente (DT)</label>
           <input type="number" id="v-prix" placeholder="0" oninput="calcVenteTotal()"/>
         </div>
       </div>
       <div class="form-group">
-        <label>Total (DA)</label>
+        <label>Total (DT)</label>
         <input type="number" id="v-total" placeholder="0" readonly style="background:var(--bg3);"/>
       </div>
       <div class="modal-actions">
@@ -852,6 +862,7 @@ async function doAuth(){
 }
 function skipCloud(){
   document.getElementById('cloud-screen').style.display='none';
+  document.getElementById('logout-btn').style.display='none';
   launchApp();
 }
 function setBadge(state){
@@ -859,6 +870,19 @@ function setBadge(state){
   b.className='cloud-badge '+state;
   const a=getSavedAuth();
   b.innerHTML=state==='online'?'☁ '+(a?.label||a?.user||''):state==='loading'?'↻ Sync...':'💾 Local';
+  // Show/hide logout button
+  const lb=document.getElementById('logout-btn');
+  if(lb) lb.style.display=state==='online'?'block':'none';
+}
+function logout(){
+  if(!confirm('Se déconnecter ? Vos données locales seront effacées sur cet appareil.')) return;
+  // Clear all local data and saved auth
+  localStorage.clear();
+  useCloud=false; cloudBinId=''; cloudUser='';
+  setBadge('local');
+  showToast('Déconnecté ✓');
+  // Reload page to show login screen fresh
+  setTimeout(()=>location.reload(), 800);
 }
 function showCloudScreen(){
   const s=document.getElementById('cloud-screen');

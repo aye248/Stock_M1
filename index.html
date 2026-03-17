@@ -619,42 +619,15 @@ tbody tr:hover td{background:var(--bg);}
 <div id="cloud-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;
   align-items:center;justify-content:center;padding:24px;">
   <div style="background:var(--white);border:1px solid var(--border);border-radius:24px;
-    padding:36px;max-width:480px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.12);max-height:95vh;overflow-y:auto;">
+    padding:36px;max-width:460px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.12);max-height:95vh;overflow-y:auto;">
+
     <div style="font-family:var(--font-head);font-size:1.4rem;font-weight:800;margin-bottom:4px;">☁ Multi-Appareils</div>
-    <div style="color:var(--muted);font-size:.85rem;margin-bottom:16px;line-height:1.6;">
-      Accédez à vos données depuis n'importe quel appareil.
-    </div>
-
-    <!-- JSONBIN KEY STEP -->
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px;font-size:.82rem;line-height:1.8;color:var(--text);">
-      <strong style="color:var(--accent);">Étape 1 — Clé gratuite JSONBin (1 seule fois)</strong><br/>
-      1. Allez sur <a href="https://jsonbin.io" target="_blank" style="color:var(--accent);font-weight:600;">jsonbin.io</a> → <strong>Sign Up</strong> (gratuit)<br/>
-      2. Après connexion → cliquez <strong>API Keys</strong> dans le menu<br/>
-      3. Copiez la <strong>Master Key</strong> (commence par $2a$10$...)<br/>
-      4. Collez-la ci-dessous
-    </div>
-
-    <div style="margin-bottom:16px;">
-      <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">JSONBin Master Key</label>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input id="auth-jbkey" type="password" placeholder="$2a$10$..."
-          style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--font-mono);font-size:.82rem;color:var(--text);outline:none;"
-          oninput="this.value=this.value.trim()"/>
-        <button type="button" onclick="const i=document.getElementById('auth-jbkey');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'"
-          style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;font-size:.9rem;">👁</button>
-      </div>
-      <div style="font-size:.75rem;color:var(--muted);margin-top:5px;">
-        Trouvez-la sur <strong>jsonbin.io → API Keys</strong> après inscription.
-      </div>
-    </div>
-
-    <!-- DIVIDER -->
-    <div style="border-top:1px solid var(--border);margin:16px 0;position:relative;text-align:center;">
-      <span style="background:var(--white);padding:0 10px;font-size:.75rem;color:var(--muted);position:relative;top:-9px;">Étape 2 — Votre compte magasin</span>
+    <div style="color:var(--muted);font-size:.85rem;margin-bottom:20px;line-height:1.6;">
+      Synchronisez vos données sur tous vos appareils.
     </div>
 
     <!-- TABS -->
-    <div style="display:flex;gap:6px;margin-bottom:16px;background:var(--bg2);padding:5px;border-radius:12px;">
+    <div style="display:flex;gap:6px;margin-bottom:20px;background:var(--bg2);padding:5px;border-radius:12px;">
       <button id="tab-login" onclick="switchAuthTab('login')"
         style="flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;font-weight:700;cursor:pointer;background:var(--dark);color:#fff;">
         Se connecter
@@ -665,35 +638,77 @@ tbody tr:hover td{background:var(--bg);}
       </button>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">
-      <div id="name-field" style="display:none;">
+    <!-- SIGNUP FIELDS -->
+    <div id="signup-fields" style="display:none;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:.8rem;line-height:1.8;">
+        <strong style="color:var(--accent);">Obtenez votre clé JSONBin gratuite :</strong><br/>
+        1. Allez sur <a href="https://jsonbin.io" target="_blank" style="color:var(--accent);font-weight:600;">jsonbin.io</a> → <strong>Sign Up</strong> (gratuit)<br/>
+        2. Cliquez <strong>API Keys</strong> → copiez la <strong>Master Key</strong>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Master Key JSONBin</label>
+        <div style="display:flex;gap:6px;">
+          <input id="signup-key" type="password" placeholder="$2a$10$..."
+            style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:var(--font-mono);font-size:.8rem;color:var(--text);outline:none;" oninput="this.value=this.value.trim()"/>
+          <button type="button" onclick="const i=document.getElementById('signup-key');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'"
+            style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;">👁</button>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
         <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Nom du magasin</label>
-        <input id="auth-name" type="text" placeholder="ex: Magasin Papa"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--font-body);font-size:.9rem;color:var(--text);outline:none;"/>
+        <input id="signup-name" type="text" placeholder="ex: Mon Magasin"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:var(--font-body);font-size:.9rem;color:var(--text);outline:none;"/>
       </div>
-      <div>
-        <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Identifiant</label>
-        <input id="auth-user" type="text" placeholder="ex: magasin-ali"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--font-body);font-size:.9rem;color:var(--text);outline:none;"/>
-      </div>
-      <div>
-        <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Mot de passe</label>
-        <input id="auth-pass" type="password" placeholder="••••••••"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--font-body);font-size:.9rem;color:var(--text);outline:none;"
-          onkeydown="if(event.key==='Enter') doAuth()"/>
+      <button onclick="doSignup()" id="signup-btn"
+        style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-family:var(--font-body);font-size:.9rem;font-weight:700;cursor:pointer;margin-bottom:10px;">
+        Créer mon espace cloud
+      </button>
+      <!-- Shown after signup -->
+      <div id="signup-result" style="display:none;background:#dcfce7;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;font-size:.83rem;line-height:1.9;">
+        <strong style="color:#166534;">✓ Compte créé ! Copiez et sauvegardez votre Bin ID :</strong><br/>
+        <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
+          <code id="signup-binid-display" style="flex:1;background:var(--bg);padding:8px 12px;border-radius:8px;font-size:.78rem;word-break:break-all;border:1px solid var(--border);"></code>
+          <button onclick="navigator.clipboard.writeText(document.getElementById('signup-binid-display').textContent);this.textContent='✓';setTimeout(()=>this.textContent='📋',1500)"
+            style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:.85rem;flex-shrink:0;">📋</button>
+        </div>
+        <div style="color:#166534;font-size:.78rem;margin-top:8px;font-weight:600;">
+          ⚠ Notez ce Bin ID — vous en aurez besoin sur chaque nouvel appareil pour vous connecter.
+        </div>
       </div>
     </div>
 
-    <div style="display:flex;gap:10px;margin-bottom:10px;">
-      <button onclick="skipCloud()" id="auth-skip-btn"
-        style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:var(--font-body);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--muted);">
-        Local seulement
-      </button>
-      <button onclick="doAuth()" id="auth-btn"
-        style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px;font-family:var(--font-body);font-size:.9rem;font-weight:700;cursor:pointer;">
-        Se connecter
-      </button>
+    <!-- LOGIN FIELDS -->
+    <div id="login-fields">
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Master Key JSONBin</label>
+          <div style="display:flex;gap:6px;">
+            <input id="login-key" type="password" placeholder="$2a$10$..."
+              style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:var(--font-mono);font-size:.8rem;color:var(--text);outline:none;" oninput="this.value=this.value.trim()"/>
+            <button type="button" onclick="const i=document.getElementById('login-key');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'"
+              style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;">👁</button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Bin ID</label>
+          <input id="login-binid" type="text" placeholder="ex: 64abc123def456..."
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:var(--font-mono);font-size:.82rem;color:var(--text);outline:none;" oninput="this.value=this.value.trim()"
+            onkeydown="if(event.key==='Enter') doLogin()"/>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:4px;">Donné lors de la création du compte — copiez-le depuis votre sauvegarde.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <button onclick="skipCloud()" id="auth-skip-btn"
+          style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:var(--font-body);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--muted);">
+          Local seulement
+        </button>
+        <button onclick="doLogin()" id="login-btn"
+          style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px;font-family:var(--font-body);font-size:.9rem;font-weight:700;cursor:pointer;">
+          Se connecter
+        </button>
+      </div>
     </div>
+
     <div id="auth-status" style="display:none;border-radius:10px;padding:11px 14px;font-size:.83rem;line-height:1.5;"></div>
   </div>
 </div>
@@ -707,17 +722,10 @@ tbody tr:hover td{background:var(--bg);}
 </style>
 
 <script>
-// ── CLOUD AUTH (JSONBin — user provides their own key) ─────────────
+// ── CLOUD (JSONBin — Bin ID approach, no searching) ────────────────
 const CLOUD_KEY = 'cloud_cfg';
-let useCloud = false, cloudBinId = '', cloudUser = '';
+let useCloud = false, cloudBinId = '';
 const KEYS = ['products','achats','ventes','trash_products','trash_achats','trash_ventes'];
-
-// Key: always prefer the live input field, fall back to saved
-function getJbKey(){
-  const inputEl = document.getElementById('auth-jbkey');
-  const inputVal = inputEl ? inputEl.value.trim() : '';
-  return inputVal || getSavedAuth()?.jbkey || '';
-}
 
 const LocalDB = {
   get: k => { try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){return [];} },
@@ -731,189 +739,131 @@ function getProducts(){ return DB.get('products'); }
 function getAchats()  { return DB.get('achats'); }
 function getVentes()  { return DB.get('ventes'); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-
-function getSavedAuth(){ try{ return JSON.parse(localStorage.getItem(CLOUD_KEY)||'null'); }catch(e){return null;} }
-function saveAuth(o){ localStorage.setItem(CLOUD_KEY, JSON.stringify(o)); }
-
-async function makeHash(user, pass){
-  const enc = new TextEncoder().encode(user.toLowerCase().trim()+'::'+pass);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,20);
-}
-
+function getSavedAuth(){ try{return JSON.parse(localStorage.getItem(CLOUD_KEY)||'null');}catch(e){return null;} }
+function saveAuth(o){ localStorage.setItem(CLOUD_KEY,JSON.stringify(o)); }
 function getAllLocal(){ const o={}; KEYS.forEach(k=>o[k]=LocalDB.get(k)); return o; }
 
-async function jbReq(url, method='GET', body=null, extra={}){
-  const k = getJbKey();
-  const h={'Content-Type':'application/json','X-Master-Key':k,'X-Access-Key':k,...extra};
-  const opts={method,headers:h};
-  if(body) opts.body=JSON.stringify(body);
-  const r=await fetch(url,opts);
-  const t=await r.text();
-  try{return{ok:r.ok,status:r.status,data:JSON.parse(t)};}
-  catch(e){return{ok:r.ok,status:r.status,data:t};}
+async function jbReq(url, method='GET', body=null, key=null){
+  const k = key || getSavedAuth()?.jbkey || '';
+  const h = {'Content-Type':'application/json','X-Master-Key':k,'X-Access-Key':k};
+  if(method==='PUT') h['X-Bin-Versioning']='false';
+  const opts = {method, headers:h};
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const t = await r.text();
+  try{ return {ok:r.ok, status:r.status, data:JSON.parse(t)}; }
+  catch(e){ return {ok:r.ok, status:r.status, data:t}; }
 }
 
 async function cloudPush(){
   if(!cloudBinId) return;
-  await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}`,'PUT',getAllLocal(),{'X-Bin-Versioning':'false'});
+  await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}`, 'PUT', getAllLocal());
 }
 async function cloudPull(){
-  const r=await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
-  if(!r.ok) throw new Error('Pull failed '+r.status);
-  const data=r.data?.record||{};
-  KEYS.forEach(k=>{if(Array.isArray(data[k]))LocalDB.set(k,data[k]);});
-}
-async function createBin(name, body){
-  const r=await jbReq('https://api.jsonbin.io/v3/b','POST', body||getAllLocal(), {'X-Bin-Name':name,'X-Bin-Private':'true'});
-  if(!r.ok){
-    const msg = r.data?.message || JSON.stringify(r.data);
-    if(r.status===401||r.status===403) throw new Error('Master Key incorrecte ('+r.status+')');
-    throw new Error('Création échouée ('+r.status+'): '+msg);
-  }
-  return r.data?.metadata?.id;
-}
-async function findBin(name){
-  const r=await jbReq('https://api.jsonbin.io/v3/b?sortBy=createdAt&order=desc');
-  if(!r.ok||!Array.isArray(r.data)) return null;
-  return r.data.find(b=>b.snippetMeta?.name===name)||null;
-}
-let authMode='login';
-function switchAuthTab(mode){
-  authMode=mode;
-  const s=mode==='signup';
-  document.getElementById('name-field').style.display=s?'block':'none';
-  document.getElementById('tab-login').style.cssText='flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;cursor:pointer;'+(s?'background:transparent;color:var(--muted);font-weight:600;':'background:var(--dark);color:#fff;font-weight:700;');
-  document.getElementById('tab-signup').style.cssText='flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;cursor:pointer;'+(s?'background:var(--dark);color:#fff;font-weight:700;':'background:transparent;color:var(--muted);font-weight:600;');
-  document.getElementById('auth-btn').textContent=s?'Créer le compte':'Se connecter';
-  document.getElementById('auth-status').style.display='none';
-}
-function setAuthStatus(msg,type='loading'){
-  const el=document.getElementById('auth-status');
-  const s={loading:'background:#fefce8;border:1px solid #fde68a;color:#854d0e;',success:'background:#dcfce7;border:1px solid #bbf7d0;color:#166534;',error:'background:#fee2e2;border:1px solid #fecaca;color:#991b1b;'};
-  el.style.cssText='display:block;border-radius:10px;padding:11px 14px;font-size:.83rem;line-height:1.5;'+(s[type]||s.loading);
-  el.innerHTML=msg;
-}
-function setAuthBusy(busy){
-  const b=document.getElementById('auth-btn'),s=document.getElementById('auth-skip-btn');
-  b.disabled=s.disabled=busy; b.style.opacity=busy?'.65':'1';
-  if(!busy) b.textContent=authMode==='signup'?'Créer le compte':'Se connecter';
-  else b.textContent='↻ Chargement...';
+  const r = await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
+  if(!r.ok) throw new Error('Lecture échouée ('+r.status+')');
+  const data = r.data?.record || {};
+  KEYS.forEach(k=>{ if(Array.isArray(data[k])) LocalDB.set(k, data[k]); });
 }
 
-async function doAuth(){
-  const jbkey = document.getElementById('auth-jbkey').value.trim();
-  const user  = document.getElementById('auth-user').value.trim();
-  const pass  = document.getElementById('auth-pass').value.trim();
-  const name  = document.getElementById('auth-name').value.trim();
-  if(!jbkey){ setAuthStatus('⚠ Collez votre JSONBin Master Key.','error'); return; }
-  if(!user||!pass){ setAuthStatus('⚠ Identifiant et mot de passe requis.','error'); return; }
-  setAuthBusy(true);
-
+// ── SIGNUP ────────────────────────────────────────────────────────
+async function doSignup(){
+  const key  = document.getElementById('signup-key').value.trim();
+  const name = document.getElementById('signup-name').value.trim() || 'Mon Magasin';
+  if(!key){ setAuthStatus('⚠ Entrez votre Master Key JSONBin.','error'); return; }
+  const btn = document.getElementById('signup-btn');
+  btn.disabled=true; btn.textContent='↻ Création...'; btn.style.opacity='.65';
+  setAuthStatus('','none');
   try{
-    const hash = await makeHash(user, pass);
-    // INDEX bin name = 'idx-'+hash  → stores {dataBinId}
-    // DATA  bin name = 'dat-'+hash  → stores actual store data
-    const idxName = 'idx-'+hash;
-    const datName = 'dat-'+hash;
-
-    if(authMode === 'signup'){
-      setAuthStatus('⏳ Création du compte...','loading');
-
-      // 1. Check if index bin already exists (= account already created)
-      const existing = await findBinByName(jbkey, idxName);
-      if(existing){
-        setAuthStatus('⚠ Identifiant déjà utilisé. Essayez "Se connecter".','error');
-        setAuthBusy(false); return;
-      }
-
-      // 2. Create data bin
-      setAuthStatus('⏳ Création de l\'espace de stockage...','loading');
-      cloudBinId = await createBin(datName, getAllLocal());
-
-      // 3. Create index bin that points to data bin
-      await createBin(idxName, {dataBinId: cloudBinId, user, label: name||user});
-
-      saveAuth({user, binId:cloudBinId, label:name||user, jbkey});
-
-    } else {
-      setAuthStatus('⏳ Connexion...','loading');
-
-      // 1. Find index bin by name to get the data bin ID
-      const idxBin = await findBinByName(jbkey, idxName);
-      if(!idxBin){
-        setAuthStatus('⚠ Compte introuvable. Vérifiez votre identifiant et mot de passe.','error');
-        setAuthBusy(false); return;
-      }
-
-      // 2. Read index bin to get data bin ID
-      setAuthStatus('⏳ Récupération des données...','loading');
-      const idxId = idxBin.id;
-      const idxRes = await jbReq(`https://api.jsonbin.io/v3/b/${idxId}/latest`);
-      if(!idxRes.ok) throw new Error('Lecture index échouée');
-      cloudBinId = idxRes.data?.record?.dataBinId;
-      if(!cloudBinId) throw new Error('Index corrompu — contactez le support');
-
-      // 3. Pull data
-      saveAuth({user, binId:cloudBinId, label:user, jbkey});
-      await cloudPull();
+    const r = await jbReq('https://api.jsonbin.io/v3/b', 'POST', getAllLocal(), key);
+    if(!r.ok){
+      if(r.status===401||r.status===403) throw new Error('Master Key incorrecte. Vérifiez sur jsonbin.io → API Keys.');
+      throw new Error('Erreur ('+r.status+'): '+(r.data?.message||''));
     }
-
-    useCloud=true; cloudUser=user;
-    setAuthStatus('✓ Connecté !','success');
+    const binId = r.data?.metadata?.id;
+    if(!binId) throw new Error('Bin ID non reçu — réessayez.');
+    saveAuth({jbkey:key, binId, label:name});
+    cloudBinId = binId; useCloud = true;
+    document.getElementById('signup-binid-display').textContent = binId;
+    document.getElementById('signup-result').style.display = 'block';
+    btn.textContent = '✓ Créé !';
     setBadge('online');
     setTimeout(()=>{
-      document.getElementById('cloud-screen').style.display='none';
-      launchApp(); showToast('☁ Connecté — '+user);
-    }, 600);
-
+      document.getElementById('cloud-screen').style.display = 'none';
+      launchApp(); showToast('☁ Compte créé — '+name);
+    }, 4000);
   } catch(e){
-    let m = e.message||'Erreur inconnue', hint='';
-    if(m.includes('401')||m.includes('403'))
-      hint='<br/>→ Master Key incorrecte — vérifiez sur jsonbin.io → API Keys.';
-    else if(m.includes('fetch')||m.includes('Failed')||m.includes('Load'))
-      hint='<br/>→ Vérifiez votre connexion internet.';
-    setAuthStatus('⚠ '+m+hint,'error');
-    setAuthBusy(false);
+    setAuthStatus('⚠ '+e.message, 'error');
+    btn.disabled=false; btn.textContent='Créer mon espace cloud'; btn.style.opacity='1';
   }
 }
 
-// Find a bin by its name tag (searches all bins)
-async function findBinByName(key, name){
-  const r = await jbReq('https://api.jsonbin.io/v3/b?sortBy=createdAt&order=desc', 'GET', null, {'X-Master-Key':key,'X-Access-Key':key});
-  if(!r.ok || !Array.isArray(r.data)) return null;
-  return r.data.find(b => b.snippetMeta?.name === name) || null;
+// ── LOGIN ─────────────────────────────────────────────────────────
+async function doLogin(){
+  const key   = document.getElementById('login-key').value.trim();
+  const binId = document.getElementById('login-binid').value.trim();
+  if(!key)   { setAuthStatus('⚠ Entrez votre Master Key JSONBin.','error'); return; }
+  if(!binId) { setAuthStatus('⚠ Entrez votre Bin ID.','error'); return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled=true; btn.textContent='↻ Connexion...'; btn.style.opacity='.65';
+  setAuthStatus('⏳ Connexion en cours...','loading');
+  try{
+    const r = await jbReq(`https://api.jsonbin.io/v3/b/${binId}/latest`, 'GET', null, key);
+    if(!r.ok){
+      if(r.status===401||r.status===403) throw new Error('Master Key incorrecte.');
+      if(r.status===404) throw new Error('Bin ID introuvable — vérifiez le Bin ID.');
+      throw new Error('Erreur ('+r.status+')');
+    }
+    const data = r.data?.record || {};
+    KEYS.forEach(k=>{ if(Array.isArray(data[k])) LocalDB.set(k, data[k]); });
+    saveAuth({jbkey:key, binId, label:'Mon Magasin'});
+    cloudBinId = binId; useCloud = true;
+    setBadge('online');
+    document.getElementById('cloud-screen').style.display = 'none';
+    launchApp(); showToast('☁ Connecté ✓');
+  } catch(e){
+    setAuthStatus('⚠ '+e.message, 'error');
+    btn.disabled=false; btn.textContent='Se connecter'; btn.style.opacity='1';
+  }
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────────
+let authMode = 'login';
+function switchAuthTab(mode){
+  authMode = mode;
+  const s = mode==='signup';
+  document.getElementById('signup-fields').style.display = s ? 'block':'none';
+  document.getElementById('login-fields').style.display  = s ? 'none':'block';
+  document.getElementById('tab-login').style.cssText  = 'flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;cursor:pointer;'+(s?'background:transparent;color:var(--muted);font-weight:600;':'background:var(--dark);color:#fff;font-weight:700;');
+  document.getElementById('tab-signup').style.cssText = 'flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;cursor:pointer;'+(s?'background:var(--dark);color:#fff;font-weight:700;':'background:transparent;color:var(--muted);font-weight:600;');
+  document.getElementById('auth-status').style.display = 'none';
+}
+function setAuthStatus(msg, type='error'){
+  const el = document.getElementById('auth-status');
+  if(type==='none'){ el.style.display='none'; return; }
+  const s = {error:'background:#fee2e2;border:1px solid #fecaca;color:#991b1b;', success:'background:#dcfce7;border:1px solid #bbf7d0;color:#166534;', loading:'background:#fefce8;border:1px solid #fde68a;color:#854d0e;'};
+  el.style.cssText = 'display:block;border-radius:10px;padding:11px 14px;font-size:.83rem;line-height:1.5;'+(s[type]||s.error);
+  el.innerHTML = msg;
 }
 function skipCloud(){
-  document.getElementById('cloud-screen').style.display='none';
-  document.getElementById('logout-btn').style.display='none';
+  document.getElementById('cloud-screen').style.display = 'none';
+  document.getElementById('logout-btn').style.display   = 'none';
   launchApp();
 }
 function setBadge(state){
-  const b=document.getElementById('cloud-badge'); if(!b)return;
-  b.className='cloud-badge '+state;
-  const a=getSavedAuth();
-  b.innerHTML=state==='online'?'☁ '+(a?.label||a?.user||''):state==='loading'?'↻ Sync...':'💾 Local';
-  // Show/hide logout button
-  const lb=document.getElementById('logout-btn');
-  if(lb) lb.style.display=state==='online'?'block':'none';
-}
-function logout(){
-  if(!confirm('Se déconnecter ? Vos données locales seront effacées sur cet appareil.')) return;
-  // Clear all local data and saved auth
-  localStorage.clear();
-  useCloud=false; cloudBinId=''; cloudUser='';
-  setBadge('local');
-  showToast('Déconnecté ✓');
-  // Reload page to show login screen fresh
-  setTimeout(()=>location.reload(), 800);
+  const b = document.getElementById('cloud-badge'); if(!b) return;
+  b.className = 'cloud-badge '+state;
+  const a = getSavedAuth();
+  b.innerHTML = state==='online' ? '☁ '+(a?.label||'Cloud') : state==='loading' ? '↻ Sync...' : '💾 Local';
+  const lb = document.getElementById('logout-btn');
+  if(lb) lb.style.display = state==='online' ? 'block':'none';
 }
 function showCloudScreen(){
-  const s=document.getElementById('cloud-screen');
-  s.style.cssText='display:flex;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;padding:24px;';
-  const a=getSavedAuth();
-  if(a?.user) document.getElementById('auth-user').value=a.user;
-  if(a?.jbkey) document.getElementById('auth-jbkey').value=a.jbkey;
+  const s = document.getElementById('cloud-screen');
+  s.style.cssText = 'display:flex;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;padding:24px;';
+  const a = getSavedAuth();
+  if(a?.jbkey)  document.getElementById('login-key').value   = a.jbkey;
+  if(a?.binId)  document.getElementById('login-binid').value = a.binId;
 }
 
 // ── SEED DATA ─────────────────────────────────────────────────────
@@ -1616,7 +1566,6 @@ async function init(){
   const auth = getSavedAuth();
   if(auth && auth.binId){
     cloudBinId = auth.binId;
-    cloudUser  = auth.user||'';
     try{
       setBadge('loading');
       await cloudPull();

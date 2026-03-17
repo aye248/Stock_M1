@@ -764,8 +764,8 @@ async function cloudPull(){
   const data=r.data?.record||{};
   KEYS.forEach(k=>{if(Array.isArray(data[k]))LocalDB.set(k,data[k]);});
 }
-async function createBin(name){
-  const r=await jbReq('https://api.jsonbin.io/v3/b','POST',getAllLocal(),{'X-Bin-Name':name,'X-Bin-Private':'true'});
+async function createBin(name, body){
+  const r=await jbReq('https://api.jsonbin.io/v3/b','POST', body||getAllLocal(), {'X-Bin-Name':name,'X-Bin-Private':'true'});
   if(!r.ok){
     const msg = r.data?.message || JSON.stringify(r.data);
     if(r.status===401||r.status===403) throw new Error('Master Key incorrecte ('+r.status+')');
@@ -773,7 +773,11 @@ async function createBin(name){
   }
   return r.data?.metadata?.id;
 }
-// ── AUTH UI ───────────────────────────────────────────────────────
+async function findBin(name){
+  const r=await jbReq('https://api.jsonbin.io/v3/b?sortBy=createdAt&order=desc');
+  if(!r.ok||!Array.isArray(r.data)) return null;
+  return r.data.find(b=>b.snippetMeta?.name===name)||null;
+}
 let authMode='login';
 function switchAuthTab(mode){
   authMode=mode;
@@ -807,38 +811,51 @@ async function doAuth(){
   setAuthBusy(true);
 
   try{
-    // The bin name encodes user+pass — acts as the "account"
     const hash = await makeHash(user, pass);
-    const binName = 'mm-'+hash;
+    // INDEX bin name = 'idx-'+hash  → stores {dataBinId}
+    // DATA  bin name = 'dat-'+hash  → stores actual store data
+    const idxName = 'idx-'+hash;
+    const datName = 'dat-'+hash;
 
     if(authMode === 'signup'){
       setAuthStatus('⏳ Création du compte...','loading');
-      // Create a new bin — if key is wrong this will throw 401
-      cloudBinId = await createBin(binName);
+
+      // 1. Check if index bin already exists (= account already created)
+      const existing = await findBinByName(jbkey, idxName);
+      if(existing){
+        setAuthStatus('⚠ Identifiant déjà utilisé. Essayez "Se connecter".','error');
+        setAuthBusy(false); return;
+      }
+
+      // 2. Create data bin
+      setAuthStatus('⏳ Création de l\'espace de stockage...','loading');
+      cloudBinId = await createBin(datName, getAllLocal());
+
+      // 3. Create index bin that points to data bin
+      await createBin(idxName, {dataBinId: cloudBinId, user, label: name||user});
+
       saveAuth({user, binId:cloudBinId, label:name||user, jbkey});
 
     } else {
-      // Login: the binId was saved locally on first signup on this device
-      // OR user must provide the binId (we store it after first signup)
       setAuthStatus('⏳ Connexion...','loading');
-      const saved = getSavedAuth();
-      if(saved && saved.user===user && saved.binId){
-        // Already have the binId saved
-        cloudBinId = saved.binId;
-      } else {
-        // Try to find by creating a temp read — use hash as bin name lookup
-        // Since we can't list, we store binId in a known "index bin" per key
-        setAuthStatus('⏳ Recherche du compte...','loading');
-        const indexRes = await jbReq(`https://api.jsonbin.io/v3/b/${binName}/latest`);
-        if(indexRes.ok && indexRes.data?.record?.binId){
-          cloudBinId = indexRes.data.record.binId;
-        } else {
-          setAuthStatus('⚠ Compte introuvable sur cet appareil. Utilisez "Créer un compte" ou reconnectez-vous depuis l\'appareil d\'origine.','error');
-          setAuthBusy(false); return;
-        }
+
+      // 1. Find index bin by name to get the data bin ID
+      const idxBin = await findBinByName(jbkey, idxName);
+      if(!idxBin){
+        setAuthStatus('⚠ Compte introuvable. Vérifiez votre identifiant et mot de passe.','error');
+        setAuthBusy(false); return;
       }
+
+      // 2. Read index bin to get data bin ID
+      setAuthStatus('⏳ Récupération des données...','loading');
+      const idxId = idxBin.id;
+      const idxRes = await jbReq(`https://api.jsonbin.io/v3/b/${idxId}/latest`);
+      if(!idxRes.ok) throw new Error('Lecture index échouée');
+      cloudBinId = idxRes.data?.record?.dataBinId;
+      if(!cloudBinId) throw new Error('Index corrompu — contactez le support');
+
+      // 3. Pull data
       saveAuth({user, binId:cloudBinId, label:user, jbkey});
-      setAuthStatus('⏳ Synchronisation...','loading');
       await cloudPull();
     }
 
@@ -852,13 +869,20 @@ async function doAuth(){
 
   } catch(e){
     let m = e.message||'Erreur inconnue', hint='';
-    if(m.includes('401')||m.includes('403')||m.includes('InvalidKey')||m.includes('Invalid'))
+    if(m.includes('401')||m.includes('403'))
       hint='<br/>→ Master Key incorrecte — vérifiez sur jsonbin.io → API Keys.';
     else if(m.includes('fetch')||m.includes('Failed')||m.includes('Load'))
       hint='<br/>→ Vérifiez votre connexion internet.';
     setAuthStatus('⚠ '+m+hint,'error');
     setAuthBusy(false);
   }
+}
+
+// Find a bin by its name tag (searches all bins)
+async function findBinByName(key, name){
+  const r = await jbReq('https://api.jsonbin.io/v3/b?sortBy=createdAt&order=desc', 'GET', null, {'X-Master-Key':key,'X-Access-Key':key});
+  if(!r.ok || !Array.isArray(r.data)) return null;
+  return r.data.find(b => b.snippetMeta?.name === name) || null;
 }
 function skipCloud(){
   document.getElementById('cloud-screen').style.display='none';

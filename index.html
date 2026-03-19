@@ -69,7 +69,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 .stat-card.blue::before{background:linear-gradient(90deg,#1D4ED8,#3B82F6);}
 .stat-label{font-size:.75rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
   color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;}
-.stat-val{font-family:var(--font-head);font-size:1.9rem;font-weight:800;line-height:1;}
+.stat-val{font-family:var(--font-body);font-size:1.6rem;font-weight:700;line-height:1;}
 .stat-sub{font-size:.78rem;color:var(--muted);margin-top:6px;}
 
 /* SECTION HEADER */
@@ -284,9 +284,9 @@ tbody tr:hover td{background:var(--bg);}
           <tbody id="low-stock-table"><tr><td colspan="3"><div class="empty"><div class="empty-icon">📦</div><p>Aucun stock faible</p></div></td></tr></tbody></table>
         </div>
         <div class="table-wrap">
-          <div style="padding:16px 18px;border-bottom:1px solid var(--border);font-family:var(--font-head);font-weight:700;font-size:.95rem;">Dernières ventes</div>
-          <table><thead><tr><th>Produit</th><th>Qté</th><th>Total</th></tr></thead>
-          <tbody id="recent-ventes"><tr><td colspan="3"><div class="empty"><div class="empty-icon">🛒</div><p>Aucune vente</p></div></td></tr></tbody></table>
+          <div style="padding:16px 18px;border-bottom:1px solid var(--border);font-family:var(--font-head);font-weight:700;font-size:.95rem;">Produits en rupture 🚫</div>
+          <table><thead><tr><th>Produit</th><th>Marque</th><th>Stock</th></tr></thead>
+          <tbody id="rupture-table"><tr><td colspan="3"><div class="empty"><div class="empty-icon">✅</div><p>Aucun produit en rupture</p></div></td></tr></tbody></table>
         </div>
       </div>
     </div>
@@ -945,23 +945,24 @@ function renderDashboard(){
     </tr>`).join('');
   }
 
-  // Recent ventes
-  const recentTbody = document.getElementById('recent-ventes');
-  const recent = [...ventes].reverse().slice(0,5);
-  if(recent.length===0){
-    recentTbody.innerHTML=`<tr><td colspan="3"><div class="empty"><div class="empty-icon">🛒</div><p>Aucune vente</p></div></td></tr>`;
+  // Produits en rupture (stock = 0)
+  const ruptureTbody = document.getElementById('rupture-table');
+  const rupture = [...products].sort((a,b)=>a.article.localeCompare(b.article,'fr'))
+    .filter(p=>getStockForProduct(p.id,p.stock)===0);
+  if(rupture.length===0){
+    ruptureTbody.innerHTML=`<tr><td colspan="3"><div class="empty"><div class="empty-icon">✅</div><p>Aucun produit en rupture</p></div></td></tr>`;
   } else {
-    recentTbody.innerHTML = recent.map(v=>`<tr>
-      <td>${v.article}</td>
-      <td>${v.qty}</td>
-      <td class="profit-positive">${fmt(v.total)} DT</td>
+    ruptureTbody.innerHTML = rupture.map(p=>`<tr>
+      <td>${p.icon||'📦'} ${p.article}</td>
+      <td><span class="code">${p.marque}</span></td>
+      <td><span class="badge badge-red">Rupture</span></td>
     </tr>`).join('');
   }
 }
 
 // ── PRODUCTS ───────────────────────────────────────────────────────
 function renderProducts(){
-  const products = getProducts();
+  const products = [...getProducts()].sort((a,b)=>a.article.localeCompare(b.article,'fr'));
   const tbody = document.getElementById('products-table');
   if(products.length===0){
     tbody.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">📦</div><p>Aucun produit. Cliquez sur "+ Ajouter produit".</p></div></td></tr>`;
@@ -1251,7 +1252,7 @@ async function actualiserStock(){
 }
 
 function renderStockReport(){
-  const products = getProducts();
+  const products = [...getProducts()].sort((a,b)=>a.article.localeCompare(b.article,'fr'));
   const tbody = document.getElementById('stock-table');
   if(products.length===0){
     tbody.innerHTML=`<tr><td colspan="10"><div class="empty"><div class="empty-icon">📊</div><p>Aucun produit.</p></div></td></tr>`;

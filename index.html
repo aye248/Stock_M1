@@ -399,7 +399,7 @@ tbody tr:hover td{background:var(--bg);}
         <h2>Stock & Rapports</h2>
         <div style="display:flex;gap:10px;">
           <button class="btn btn-ghost" onclick="printSection('stock')">🖨 Imprimer</button>
-          <button class="btn btn-ghost" onclick="renderStockReport()">↻ Actualiser</button>
+          <button class="btn btn-ghost" onclick="actualiserStock()">↻ Actualiser</button>
         </div>
       </div>
       <div class="report-grid" style="margin-bottom:24px;">
@@ -904,7 +904,7 @@ function renderPage(name){
   else if(name==='products') renderProducts();
   else if(name==='achats') renderAchats();
   else if(name==='ventes') renderVentes();
-  else if(name==='stock') renderStockReport();
+  else if(name==='stock'){ renderStockReport(); }
   else if(name==='trash'){ renderTrash(); }
   updateBadges();
 }
@@ -1085,12 +1085,11 @@ function renderAchats(){
 }
 
 function populateProductSelects(){
-  const products = getProducts();
+  const products = [...getProducts()].sort((a,b) => a.article.localeCompare(b.article, 'fr'));
   const opts = `<option value="">-- Choisir --</option>` +
     products.map(p=>`<option value="${p.id}">${p.icon||'📦'} ${p.article} (${p.marque})</option>`).join('');
   document.getElementById('a-product').innerHTML = opts;
   document.getElementById('v-product').innerHTML = opts;
-  // default dates
   const today = new Date().toISOString().split('T')[0];
   if(!document.getElementById('a-date').value) document.getElementById('a-date').value = today;
   if(!document.getElementById('v-date').value) document.getElementById('v-date').value = today;
@@ -1239,6 +1238,18 @@ function deleteVente(id){
 }
 
 // ── STOCK REPORT ───────────────────────────────────────────────────
+async function actualiserStock(){
+  const btn = document.querySelector('[onclick="actualiserStock()"]');
+  if(btn){ btn.textContent='↻ Chargement...'; btn.disabled=true; }
+  try{
+    if(useCloud && cloudBinId) await cloudPull();
+  } catch(e){}
+  renderStockReport();
+  updateBadges();
+  if(btn){ btn.textContent='↻ Actualiser'; btn.disabled=false; }
+  showToast('Données actualisées ✓');
+}
+
 function renderStockReport(){
   const products = getProducts();
   const tbody = document.getElementById('stock-table');
@@ -1285,8 +1296,11 @@ function renderStockReport(){
 }
 
 function renderFinancialReport(){
-  const dateStart = document.getElementById('fin-date-start').value;
-  const dateEnd   = document.getElementById('fin-date-end').value;
+  const startEl = document.getElementById('fin-date-start');
+  const endEl   = document.getElementById('fin-date-end');
+  if(!startEl || !endEl) return;
+  const dateStart = startEl.value;
+  const dateEnd   = endEl.value;
 
   const inRange = (date) => {
     if(!date) return true; // no date on record → include in global

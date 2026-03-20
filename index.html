@@ -409,7 +409,33 @@ tbody tr:hover td{background:var(--bg);}
     <div class="topbar-title" id="page-title">Dashboard</div>
     <div class="topbar-right">
       <div class="topbar-date" id="topbar-date"></div>
+      <!-- Notification Bell -->
+      <div style="position:relative;">
+        <button id="notif-bell" onclick="toggleNotifPanel()" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;cursor:pointer;font-size:1rem;position:relative;transition:all .2s;" title="Alertes stock">
+          🔔
+        </button>
+        <span id="notif-count" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:50px;display:none;align-items:center;justify-content:center;padding:0 3px;font-family:var(--font-mono);">0</span>
+      </div>
       <button id="mobile-logout-btn" onclick="logout()" style="display:none;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.25);border-radius:8px;padding:7px 12px;color:#f87171;font-family:var(--font-body);font-size:.78rem;font-weight:600;cursor:pointer;">⎋</button>
+    </div>
+  </div>
+
+  <!-- NOTIFICATION PANEL -->
+  <div id="notif-panel" style="display:none;position:fixed;top:62px;right:20px;width:320px;max-height:400px;overflow-y:auto;
+    background:var(--white);border:1px solid var(--border);border-radius:16px;
+    box-shadow:0 12px 40px rgba(0,0,0,.15);z-index:400;">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:var(--font-head);font-weight:700;font-size:.92rem;">🔔 Alertes Stock</div>
+      <button onclick="toggleNotifPanel()" style="background:var(--bg2);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.8rem;">✕</button>
+    </div>
+    <div id="notif-list" style="padding:8px 0;"></div>
+    <div style="padding:10px 16px;border-top:1px solid var(--border);">
+      <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted);cursor:pointer;">
+        <input type="number" id="notif-threshold" min="0" max="99" value="3"
+          style="width:52px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:var(--font-mono);font-size:.82rem;outline:none;"
+          onchange="checkStockAlerts()"/>
+        Seuil d'alerte (unités)
+      </label>
     </div>
   </div>
   <div class="content">
@@ -449,6 +475,22 @@ tbody tr:hover td{background:var(--bg);}
           <table><thead><tr><th>Produit</th><th>Marque</th><th>Stock</th></tr></thead>
           <tbody id="rupture-table"><tr><td colspan="3"><div class="empty"><div class="empty-icon">✅</div><p>Aucun produit en rupture</p></div></td></tr></tbody></table>
         </div>
+      </div>
+
+      <!-- TOP PRODUCTS -->
+      <div style="margin-top:20px;" class="table-wrap">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:var(--font-head);font-weight:700;font-size:.95rem;">🏆 Top produits les plus vendus</div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="setTopPeriod('all')"  id="top-btn-all"  class="btn btn-ghost btn-sm" style="background:var(--dark);color:#fff;">Tout</button>
+            <button onclick="setTopPeriod('month')" id="top-btn-month" class="btn btn-ghost btn-sm">Ce mois</button>
+            <button onclick="setTopPeriod('week')"  id="top-btn-week"  class="btn btn-ghost btn-sm">Cette semaine</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Produit</th><th>Marque</th><th>Qté vendue</th><th>Chiffre d'affaires</th><th>% du total</th></tr></thead>
+          <tbody id="top-products-table"></tbody>
+        </table>
       </div>
     </div>
 
@@ -558,9 +600,13 @@ tbody tr:hover td{background:var(--bg);}
     <div class="page" id="page-stock">
       <div class="section-hdr">
         <h2>Stock & Rapports</h2>
-        <div style="display:flex;gap:10px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn btn-ghost" onclick="printSection('stock')">🖨 Imprimer</button>
           <button class="btn btn-ghost" onclick="actualiserStock()">↻ Actualiser</button>
+          <button class="btn btn-ghost" onclick="exportData('excel')">⬇ Excel</button>
+          <button class="btn btn-ghost" onclick="exportData('json')">⬇ JSON</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('import-backup-input').click()">⬆ Restaurer</button>
+          <input type="file" id="import-backup-input" accept=".json" style="display:none" onchange="importBackup(this)"/>
         </div>
       </div>
       <div class="report-grid" style="margin-bottom:24px;">
@@ -593,6 +639,46 @@ tbody tr:hover td{background:var(--bg);}
           <div id="stock-summary"></div>
         </div>
       </div>
+      <!-- CHARTS -->
+      <div style="margin-bottom:24px;">
+        <div style="font-family:var(--font-head);font-weight:700;font-size:1rem;margin-bottom:16px;">📈 Graphiques</div>
+        <div class="report-grid">
+          <div class="report-card">
+            <h3>📈 Ventes par mois</h3>
+            <canvas id="chart-ventes-month" height="220"></canvas>
+          </div>
+          <div class="report-card">
+            <h3>📉 Achats par mois</h3>
+            <canvas id="chart-achats-month" height="220"></canvas>
+          </div>
+          <div class="report-card">
+            <h3>📦 Stock actuel par produit</h3>
+            <canvas id="chart-stock" height="220"></canvas>
+          </div>
+          <div class="report-card">
+            <h3>🥧 Répartition des ventes</h3>
+            <canvas id="chart-pie" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPARAISON -->
+      <div id="cmp-section" class="report-card" style="margin-bottom:24px;">
+        <h3>🔄 Comparaison de périodes</h3>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end;margin-bottom:16px;">
+          <div><div style="font-size:.72rem;font-weight:700;color:var(--accent);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">Période A</div><div style="display:flex;gap:6px;"><input type="date" id="cmp-a-start" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 8px;font-family:var(--font-body);font-size:.8rem;outline:none;color:var(--text);"/><input type="date" id="cmp-a-end" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 8px;font-family:var(--font-body);font-size:.8rem;outline:none;color:var(--text);"/></div></div>
+          <div style="text-align:center;font-family:var(--font-head);font-weight:800;font-size:1.1rem;color:var(--muted);padding-bottom:8px;">VS</div>
+          <div><div style="font-size:.72rem;font-weight:700;color:#1D4ED8;font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">Période B</div><div style="display:flex;gap:6px;"><input type="date" id="cmp-b-start" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 8px;font-family:var(--font-body);font-size:.8rem;outline:none;color:var(--text);"/><input type="date" id="cmp-b-end" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 8px;font-family:var(--font-body);font-size:.8rem;outline:none;color:var(--text);"/></div></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="setCmpPreset('thisVsLast')">Ce mois vs mois dernier</button>
+          <button class="btn btn-ghost btn-sm" onclick="setCmpPreset('last2months')">2 derniers mois</button>
+          <button class="btn btn-ghost btn-sm" onclick="setCmpPreset('last2weeks')">2 dernières semaines</button>
+          <button class="btn btn-primary btn-sm" onclick="renderComparison()">Comparer →</button>
+        </div>
+        <div id="comparison-result"></div>
+      </div>
+
       <div class="table-wrap">
         <div style="padding:16px 18px;border-bottom:1px solid var(--border);font-family:var(--font-head);font-weight:700;">Suivi du stock par produit</div>
         <table>
@@ -648,7 +734,12 @@ tbody tr:hover td{background:var(--bg);}
       <div class="form-row">
         <div class="form-group">
           <label>Code Article</label>
-          <input type="text" id="p-code" placeholder="ex: RDNE550S"/>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="p-code" placeholder="ex: RDNE550S" style="flex:1;"/>
+            <button type="button" onclick="openBarcode('product')" title="Scanner"
+              style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:0 12px;cursor:pointer;font-size:1.1rem;flex-shrink:0;"
+              onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">📷</button>
+          </div>
         </div>
         <div class="form-group">
           <label>Marque</label>
@@ -671,11 +762,11 @@ tbody tr:hover td{background:var(--bg);}
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Prix d'Achat (DT)</label>
+          <label>Prix d'Achat (DA)</label>
           <input type="number" id="p-prix-achat" placeholder="0" min="0"/>
         </div>
         <div class="form-group">
-          <label>Prix de Vente (DT)</label>
+          <label>Prix de Vente (DA)</label>
           <input type="number" id="p-prix-vente" placeholder="0" min="0"/>
         </div>
       </div>
@@ -703,9 +794,14 @@ tbody tr:hover td{background:var(--bg);}
         </div>
         <div class="form-group">
           <label>Produit</label>
-          <select id="a-product" onchange="fillAchatProduct()">
-            <option value="">-- Choisir --</option>
-          </select>
+          <div style="display:flex;gap:6px;">
+            <select id="a-product" onchange="fillAchatProduct()" style="flex:1;">
+              <option value="">-- Choisir --</option>
+            </select>
+            <button type="button" onclick="openBarcode('achat')" title="Scanner un code-barres"
+              style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:0 12px;cursor:pointer;font-size:1.1rem;flex-shrink:0;transition:all .2s;"
+              onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">📷</button>
+          </div>
         </div>
       </div>
       <div class="form-row">
@@ -714,12 +810,12 @@ tbody tr:hover td{background:var(--bg);}
           <input type="number" id="a-qty" placeholder="1" min="1" oninput="calcAchatTotal()"/>
         </div>
         <div class="form-group">
-          <label>Prix d'Achat (DT)</label>
+          <label>Prix d'Achat (DA)</label>
           <input type="number" id="a-prix" placeholder="0" oninput="calcAchatTotal()"/>
         </div>
       </div>
       <div class="form-group">
-        <label>Total (DT)</label>
+        <label>Total (DA)</label>
         <input type="number" id="a-total" placeholder="0" readonly style="background:var(--bg3);"/>
       </div>
       <div class="modal-actions">
@@ -746,9 +842,14 @@ tbody tr:hover td{background:var(--bg);}
         </div>
         <div class="form-group">
           <label>Produit</label>
-          <select id="v-product" onchange="fillVenteProduct()">
-            <option value="">-- Choisir --</option>
-          </select>
+          <div style="display:flex;gap:6px;">
+            <select id="v-product" onchange="fillVenteProduct()" style="flex:1;">
+              <option value="">-- Choisir --</option>
+            </select>
+            <button type="button" onclick="openBarcode('vente')" title="Scanner un code-barres"
+              style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:0 12px;cursor:pointer;font-size:1.1rem;flex-shrink:0;transition:all .2s;"
+              onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">📷</button>
+          </div>
         </div>
       </div>
       <div class="form-row">
@@ -757,18 +858,43 @@ tbody tr:hover td{background:var(--bg);}
           <input type="number" id="v-qty" placeholder="1" min="1" oninput="calcVenteTotal()"/>
         </div>
         <div class="form-group">
-          <label>Prix de Vente (DT)</label>
+          <label>Prix de Vente (DA)</label>
           <input type="number" id="v-prix" placeholder="0" oninput="calcVenteTotal()"/>
         </div>
       </div>
       <div class="form-group">
-        <label>Total (DT)</label>
+        <label>Total (DA)</label>
         <input type="number" id="v-total" placeholder="0" readonly style="background:var(--bg3);"/>
       </div>
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeModal('modal-vente')">Annuler</button>
         <button class="btn btn-primary" onclick="saveVente()">Enregistrer</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: BARCODE SCANNER -->
+<div class="modal-overlay" id="modal-barcode">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head">
+      <h3>📷 Scanner un code-barres</h3>
+      <button class="modal-close" onclick="closeBarcode()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Camera view -->
+      <div id="barcode-reader" style="width:100%;border-radius:12px;overflow:hidden;background:#000;min-height:200px;"></div>
+      <!-- Manual entry fallback -->
+      <div style="margin-top:16px;">
+        <label style="font-size:.75rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:6px;">Ou entrez le code manuellement</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="barcode-manual" placeholder="ex: 6191234567890"
+            style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-family:var(--font-mono);font-size:.9rem;color:var(--text);outline:none;"
+            onkeydown="if(event.key==='Enter') applyManualBarcode()"/>
+          <button class="btn btn-primary" onclick="applyManualBarcode()">→</button>
+        </div>
+      </div>
+      <div id="barcode-status" style="display:none;margin-top:12px;border-radius:10px;padding:10px 14px;font-size:.83rem;"></div>
     </div>
   </div>
 </div>
@@ -1124,6 +1250,88 @@ function renderDashboard(){
       <td><span class="badge badge-red">Rupture</span></td>
     </tr>`).join('');
   }
+
+  // Top products
+  renderTopProducts();
+
+  // Check alerts
+  checkStockAlerts();
+}
+
+// ── TOP PRODUCTS ──────────────────────────────────────────────────
+let topPeriod = 'all';
+
+function setTopPeriod(period){
+  topPeriod = period;
+  ['all','month','week'].forEach(p=>{
+    const btn = document.getElementById('top-btn-'+p);
+    if(btn){ btn.style.background = p===period?'var(--dark)':''; btn.style.color = p===period?'#fff':''; }
+  });
+  renderTopProducts();
+}
+
+function renderTopProducts(){
+  const tbody = document.getElementById('top-products-table');
+  if(!tbody) return;
+  const products = getProducts();
+  if(products.length===0){
+    tbody.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-icon">🏆</div><p>Aucune vente enregistrée.</p></div></td></tr>`;
+    return;
+  }
+
+  // Filter ventes by period
+  const now = new Date();
+  const ventes = getVentes().filter(v=>{
+    if(topPeriod==='all') return true;
+    if(!v.date) return false;
+    const d = new Date(v.date);
+    if(topPeriod==='month') return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+    if(topPeriod==='week'){
+      const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate()-now.getDay());
+      startOfWeek.setHours(0,0,0,0);
+      return d >= startOfWeek;
+    }
+    return true;
+  });
+
+  if(ventes.length===0){
+    tbody.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-icon">📊</div><p>Aucune vente sur cette période.</p></div></td></tr>`;
+    return;
+  }
+
+  // Aggregate by product
+  const map = {};
+  ventes.forEach(v=>{
+    if(!map[v.productId]) map[v.productId] = {qty:0, total:0, article:v.article, marque:v.marque, icon:'📦'};
+    map[v.productId].qty   += Number(v.qty);
+    map[v.productId].total += Number(v.total);
+  });
+  // Enrich with product icon
+  products.forEach(p=>{ if(map[p.id]) map[p.id].icon = p.icon||'📦'; });
+
+  const totalVentes = Object.values(map).reduce((s,v)=>s+v.total, 0);
+  const sorted = Object.values(map).sort((a,b)=>b.qty - a.qty).slice(0,10);
+
+  const medals = ['🥇','🥈','🥉'];
+  tbody.innerHTML = sorted.map((p,i)=>{
+    const pct = totalVentes>0 ? ((p.total/totalVentes)*100).toFixed(1) : 0;
+    const barW = Math.round((p.qty/sorted[0].qty)*100);
+    return `<tr>
+      <td style="font-size:1.1rem;text-align:center;">${medals[i]||'#'+(i+1)}</td>
+      <td>${p.icon} <strong>${p.article}</strong></td>
+      <td><span class="code">${p.marque||'—'}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;background:var(--bg2);border-radius:50px;height:6px;min-width:60px;">
+            <div style="width:${barW}%;background:var(--accent);height:6px;border-radius:50px;"></div>
+          </div>
+          <strong>${p.qty} u.</strong>
+        </div>
+      </td>
+      <td class="profit-positive"><strong>${fmt(p.total)} DT</strong></td>
+      <td><span class="badge badge-blue">${pct}%</span></td>
+    </tr>`;
+  }).join('');
 }
 
 // ── PRODUCTS ───────────────────────────────────────────────────────
@@ -1460,6 +1668,8 @@ function renderStockReport(){
     <div class="report-item"><span>Produits stock faible</span><span class="report-item-val" style="color:var(--amber)">${faible}</span></div>
     <div class="report-item"><span>Total produits</span><span class="report-item-val">${products.length}</span></div>
   `;
+  // Render charts after DOM is ready
+  setTimeout(()=>renderCharts(), 80);
 }
 
 function renderFinancialReport(){
@@ -1594,6 +1804,8 @@ function updateBadges(){
   setBn('bn-badge-achats',   ac);
   setBn('bn-badge-ventes',   vc);
   setBn('bn-badge-trash',    tc);
+  // Refresh alerts
+  checkStockAlerts();
 }
 
 let currentTrashTab = 'products';
@@ -1740,6 +1952,122 @@ function emptyTrash(){
 }
 
 // ── INIT ───────────────────────────────────────────────────────────
+// ── STOCK ALERTS ──────────────────────────────────────────────────
+let notifPanelOpen = false;
+let lastAlertedProducts = new Set();
+
+function getThreshold(){
+  const el = document.getElementById('notif-threshold');
+  return el ? parseInt(el.value)||3 : 3;
+}
+
+function checkStockAlerts(){
+  const products = getProducts();
+  const threshold = getThreshold();
+  const alerts = [];
+
+  products.forEach(p=>{
+    const stock = getStockForProduct(p.id, p.stock);
+    if(stock <= threshold){
+      alerts.push({...p, currentStock: stock});
+    }
+  });
+
+  // Update bell badge
+  const countEl = document.getElementById('notif-count');
+  const bellEl  = document.getElementById('notif-bell');
+  if(countEl){
+    if(alerts.length > 0){
+      countEl.textContent = alerts.length;
+      countEl.style.display = 'flex';
+      if(bellEl) bellEl.style.background = '#FEE2E2';
+    } else {
+      countEl.style.display = 'none';
+      if(bellEl) bellEl.style.background = 'var(--bg2)';
+    }
+  }
+
+  // Show toast for NEW alerts
+  alerts.forEach(p=>{
+    const key = p.id+'_'+p.currentStock;
+    if(!lastAlertedProducts.has(key)){
+      lastAlertedProducts.add(key);
+      const msg = p.currentStock === 0
+        ? `🚫 Rupture : ${p.article}`
+        : `⚠ Stock faible : ${p.article} (${p.currentStock} restant${p.currentStock>1?'s':''})`;
+      showToast(msg, 'error');
+    }
+  });
+
+  // Render notification list
+  const list = document.getElementById('notif-list');
+  if(!list) return;
+  if(alerts.length === 0){
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem;">✅ Tous les stocks sont suffisants</div>`;
+    return;
+  }
+
+  list.innerHTML = alerts
+    .sort((a,b)=>a.currentStock - b.currentStock)
+    .map(p=>`
+      <div onclick="goToProduct('${p.id}')" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
+        <div style="font-size:1.5rem;">${p.icon||'📦'}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:.88rem;">${p.article}</div>
+          <div style="font-size:.75rem;color:var(--muted);">${p.marque||'—'} · <span class="code">${p.code}</span></div>
+        </div>
+        <span class="badge ${p.currentStock===0?'badge-red':'badge-amber'}">
+          ${p.currentStock===0?'Rupture':p.currentStock+' u.'}
+        </span>
+      </div>`).join('');
+}
+
+function goToProduct(productId){
+  // Close panel
+  document.getElementById('notif-panel').style.display = 'none';
+  notifPanelOpen = false;
+  // Navigate to products page
+  showPage('products');
+  // Highlight row after render
+  setTimeout(()=>{
+    const rows = document.querySelectorAll('#products-table tr');
+    rows.forEach(row=>{
+      row.style.transition = 'background .3s';
+      row.style.background = '';
+    });
+    // Find the row by product id — rows render via map so find by content
+    const products = getProducts().sort((a,b)=>a.article.localeCompare(b.article,'fr'));
+    const idx = products.findIndex(p=>p.id===productId);
+    if(idx >= 0 && rows[idx]){
+      const row = rows[idx];
+      // Flash highlight
+      row.style.background = '#FEF3C7';
+      row.scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(()=>row.style.background = '#FEE2E2', 400);
+      setTimeout(()=>row.style.background = '#FEF3C7', 800);
+      setTimeout(()=>row.style.background = '#FEE2E2', 1200);
+      setTimeout(()=>row.style.background = '', 1800);
+    }
+  }, 120);
+}
+
+function toggleNotifPanel(){
+  notifPanelOpen = !notifPanelOpen;
+  const panel = document.getElementById('notif-panel');
+  if(panel) panel.style.display = notifPanelOpen ? 'block' : 'none';
+  if(notifPanelOpen) checkStockAlerts();
+}
+
+// Close panel when clicking outside
+document.addEventListener('click', e=>{
+  const panel = document.getElementById('notif-panel');
+  const bell  = document.getElementById('notif-bell');
+  if(panel && bell && !panel.contains(e.target) && !bell.contains(e.target)){
+    panel.style.display = 'none';
+    notifPanelOpen = false;
+  }
+});
+
 function launchApp(){
   seedData();
   const now = new Date();
@@ -1810,6 +2138,8 @@ init();
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 // ── SIMPLE EXCEL IMPORT ─────────────────────────────────────────────
 let importedRows = [];
@@ -2092,6 +2422,433 @@ function importVentesFromExcel(file){
     } catch(err){ showToast('Erreur: '+err.message,'error'); }
   };
   reader.readAsBinaryString(file);
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+const chartInstances = {};
+
+function destroyChart(id){
+  if(chartInstances[id]){ chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function getMonthlyData(records, field='total'){
+  const months = {};
+  const now = new Date();
+  // Init last 6 months
+  for(let i=5;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const key = d.toLocaleString('fr-FR',{month:'short', year:'2-digit'});
+    months[key] = 0;
+  }
+  records.forEach(r=>{
+    if(!r.date) return;
+    const d = new Date(r.date);
+    const key = d.toLocaleString('fr-FR',{month:'short', year:'2-digit'});
+    if(key in months) months[key] += Number(r[field])||0;
+  });
+  return { labels: Object.keys(months), data: Object.values(months) };
+}
+
+function renderCharts(){
+  if(typeof Chart === 'undefined') return;
+
+  const accent   = '#2D5A27';
+  const accentL  = '#6BBF61';
+  const amber    = '#D97706';
+  const amberL   = '#FBBF24';
+  const red      = '#C0392B';
+  const blue     = '#1D4ED8';
+  const gridColor = 'rgba(0,0,0,.06)';
+
+  const baseOpts = {
+    responsive:true,
+    plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ' '+ctx.parsed.y.toLocaleString('fr-FR')+' DT' } } },
+    scales:{
+      x:{ grid:{ color:gridColor }, ticks:{ font:{ size:11 } } },
+      y:{ grid:{ color:gridColor }, ticks:{ font:{ size:11 }, callback: v=>v.toLocaleString('fr-FR') } }
+    }
+  };
+
+  // ── Chart 1: Ventes par mois ──
+  destroyChart('chart-ventes-month');
+  const vm = getMonthlyData(getVentes());
+  const ctx1 = document.getElementById('chart-ventes-month');
+  if(ctx1) chartInstances['chart-ventes-month'] = new Chart(ctx1, {
+    type:'bar',
+    data:{ labels:vm.labels, datasets:[{
+      label:'Ventes (DT)', data:vm.data,
+      backgroundColor: vm.data.map(v=>v>0?accentL+'99':gridColor),
+      borderColor: vm.data.map(v=>v>0?accent:gridColor),
+      borderWidth:2, borderRadius:6
+    }]},
+    options:{ ...baseOpts, plugins:{...baseOpts.plugins, tooltip:{ callbacks:{ label: ctx=>' '+ctx.parsed.y.toLocaleString('fr-FR')+' DT' }}} }
+  });
+
+  // ── Chart 2: Achats par mois ──
+  destroyChart('chart-achats-month');
+  const am = getMonthlyData(getAchats());
+  const ctx2 = document.getElementById('chart-achats-month');
+  if(ctx2) chartInstances['chart-achats-month'] = new Chart(ctx2, {
+    type:'bar',
+    data:{ labels:am.labels, datasets:[{
+      label:'Achats (DT)', data:am.data,
+      backgroundColor: am.data.map(v=>v>0?amberL+'99':gridColor),
+      borderColor: am.data.map(v=>v>0?amber:gridColor),
+      borderWidth:2, borderRadius:6
+    }]},
+    options:{ ...baseOpts, plugins:{...baseOpts.plugins, tooltip:{ callbacks:{ label: ctx=>' '+ctx.parsed.y.toLocaleString('fr-FR')+' DT' }}} }
+  });
+
+  // ── Chart 3: Stock par produit ──
+  destroyChart('chart-stock');
+  const products = [...getProducts()].sort((a,b)=>a.article.localeCompare(b.article,'fr'));
+  const stockLabels = products.map(p=>p.article.length>12?p.article.slice(0,12)+'…':p.article);
+  const stockData   = products.map(p=>getStockForProduct(p.id,p.stock));
+  const ctx3 = document.getElementById('chart-stock');
+  if(ctx3) chartInstances['chart-stock'] = new Chart(ctx3, {
+    type:'bar',
+    data:{ labels:stockLabels, datasets:[{
+      label:'Stock', data:stockData,
+      backgroundColor: stockData.map(v=>v===0?red+'99':v<=2?amberL+'99':accentL+'99'),
+      borderColor:     stockData.map(v=>v===0?red:v<=2?amber:accent),
+      borderWidth:2, borderRadius:6
+    }]},
+    options:{
+      ...baseOpts,
+      plugins:{...baseOpts.plugins, tooltip:{ callbacks:{ label: ctx=>' '+ctx.parsed.y+' unités' }}},
+      scales:{ x:{...baseOpts.scales.x}, y:{ ...baseOpts.scales.y, ticks:{ callback: v=>v+' u.' } } }
+    }
+  });
+
+  // ── Chart 4: Répartition ventes (Pie) ──
+  destroyChart('chart-pie');
+  const venteMap = {};
+  getVentes().forEach(v=>{ venteMap[v.article] = (venteMap[v.article]||0)+Number(v.total); });
+  const pieLabels = Object.keys(venteMap);
+  const pieData   = Object.values(venteMap);
+  const pieColors = ['#2D5A27','#4A8C42','#6BBF61','#D97706','#1D4ED8','#C0392B','#9333EA','#0891B2','#EA580C','#65A30D'];
+  const ctx4 = document.getElementById('chart-pie');
+  if(ctx4){
+    if(pieLabels.length===0){
+      ctx4.parentElement.innerHTML = '<h3>🥧 Répartition des ventes</h3><div class="empty" style="padding:40px"><div class="empty-icon">📊</div><p>Aucune vente enregistrée</p></div>';
+    } else {
+      chartInstances['chart-pie'] = new Chart(ctx4, {
+        type:'doughnut',
+        data:{ labels:pieLabels, datasets:[{
+          data:pieData,
+          backgroundColor: pieColors.slice(0,pieLabels.length),
+          borderWidth:2, borderColor:'#fff', hoverOffset:8
+        }]},
+        options:{
+          responsive:true,
+          plugins:{
+            legend:{ display:true, position:'bottom', labels:{ font:{size:11}, padding:12 } },
+            tooltip:{ callbacks:{ label: ctx=>` ${ctx.label}: ${ctx.parsed.toLocaleString('fr-FR')} DT` }}
+          }
+        }
+      });
+    }
+  }
+}
+
+// ── BARCODE SCANNER ───────────────────────────────────────────────
+let barcodeScanner = null;
+let barcodeTarget  = null; // 'achat' | 'vente' | 'product'
+
+function openBarcode(target){
+  barcodeTarget = target;
+  document.getElementById('barcode-manual').value = '';
+  document.getElementById('barcode-status').style.display = 'none';
+  document.getElementById('modal-barcode').classList.add('open');
+
+  // Start camera after modal is visible
+  setTimeout(()=>startBarcodeScanner(), 300);
+}
+
+function closeBarcode(){
+  stopBarcodeScanner();
+  document.getElementById('modal-barcode').classList.remove('open');
+  document.getElementById('barcode-reader').innerHTML = '';
+}
+
+function startBarcodeScanner(){
+  if(typeof Html5Qrcode === 'undefined') return;
+  stopBarcodeScanner();
+  try{
+    barcodeScanner = new Html5Qrcode('barcode-reader');
+    barcodeScanner.start(
+      { facingMode:'environment' },
+      { fps:10, qrbox:{ width:250, height:150 }, aspectRatio:1.5 },
+      (code) => { handleBarcodeResult(code); }
+    ).catch(err=>{
+      setBarcodeStatus('Caméra non disponible. Entrez le code manuellement.','error');
+    });
+  } catch(e){
+    setBarcodeStatus('Erreur caméra. Entrez le code manuellement.','error');
+  }
+}
+
+function stopBarcodeScanner(){
+  if(barcodeScanner){
+    barcodeScanner.stop().catch(()=>{});
+    barcodeScanner = null;
+  }
+}
+
+function handleBarcodeResult(code){
+  stopBarcodeScanner();
+  applyBarcode(code.trim());
+}
+
+function applyManualBarcode(){
+  const code = document.getElementById('barcode-manual').value.trim();
+  if(!code){ setBarcodeStatus('Entrez un code.','error'); return; }
+  applyBarcode(code);
+}
+
+function applyBarcode(code){
+  const products = getProducts();
+  // Try to find product by code
+  const found = products.find(p =>
+    p.code.toLowerCase() === code.toLowerCase() ||
+    p.code.toLowerCase().includes(code.toLowerCase())
+  );
+
+  if(barcodeTarget === 'product'){
+    // Fill code field in product form
+    document.getElementById('p-code').value = code;
+    closeBarcode();
+    showToast('Code scanné: '+code);
+    return;
+  }
+
+  if(!found){
+    setBarcodeStatus(`⚠ Produit introuvable pour le code: ${code}<br/><small>Vérifiez que ce produit existe dans votre catalogue.</small>`,'error');
+    return;
+  }
+
+  // Fill product select
+  const selectId = barcodeTarget==='achat' ? 'a-product' : 'v-product';
+  const select = document.getElementById(selectId);
+  if(select){
+    select.value = found.id;
+    if(barcodeTarget==='achat') fillAchatProduct();
+    else fillVenteProduct();
+  }
+
+  setBarcodeStatus(`✓ Produit trouvé : <strong>${found.article}</strong> (${found.marque})`,'success');
+  setTimeout(()=>closeBarcode(), 1200);
+}
+
+function setBarcodeStatus(msg, type='success'){
+  const el = document.getElementById('barcode-status');
+  const s = {
+    success:'background:#dcfce7;border:1px solid #bbf7d0;color:#166534;',
+    error:  'background:#fee2e2;border:1px solid #fecaca;color:#991b1b;',
+  };
+  el.style.cssText = 'display:block;border-radius:10px;padding:10px 14px;font-size:.83rem;line-height:1.6;'+(s[type]||s.success);
+  el.innerHTML = msg;
+}
+
+// ── COMPARISON ────────────────────────────────────────────────────
+function setCmpPreset(preset){
+  const now = new Date();
+  const fmt = d => d.toISOString().split('T')[0];
+
+  if(preset === 'thisVsLast'){
+    // Period A = this month, Period B = last month
+    const aStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const aEnd   = new Date(now.getFullYear(), now.getMonth()+1, 0);
+    const bStart = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    const bEnd   = new Date(now.getFullYear(), now.getMonth(), 0);
+    document.getElementById('cmp-a-start').value = fmt(aStart);
+    document.getElementById('cmp-a-end').value   = fmt(aEnd);
+    document.getElementById('cmp-b-start').value = fmt(bStart);
+    document.getElementById('cmp-b-end').value   = fmt(bEnd);
+  } else if(preset === 'last2months'){
+    const aStart = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    const aEnd   = new Date(now.getFullYear(), now.getMonth(), 0);
+    const bStart = new Date(now.getFullYear(), now.getMonth()-2, 1);
+    const bEnd   = new Date(now.getFullYear(), now.getMonth()-1, 0);
+    document.getElementById('cmp-a-start').value = fmt(aStart);
+    document.getElementById('cmp-a-end').value   = fmt(aEnd);
+    document.getElementById('cmp-b-start').value = fmt(bStart);
+    document.getElementById('cmp-b-end').value   = fmt(bEnd);
+  } else if(preset === 'last2weeks'){
+    const aStart = new Date(now); aStart.setDate(now.getDate()-7);
+    const aEnd   = new Date(now);
+    const bStart = new Date(now); bStart.setDate(now.getDate()-14);
+    const bEnd   = new Date(now); bEnd.setDate(now.getDate()-7);
+    document.getElementById('cmp-a-start').value = fmt(aStart);
+    document.getElementById('cmp-a-end').value   = fmt(aEnd);
+    document.getElementById('cmp-b-start').value = fmt(bStart);
+    document.getElementById('cmp-b-end').value   = fmt(bEnd);
+  }
+  renderComparison();
+}
+
+function calcPeriod(records, startStr, endStr, field='total'){
+  return records.filter(r=>{
+    if(!r.date) return false;
+    return r.date >= startStr && r.date <= endStr;
+  }).reduce((s,r)=>s+Number(r[field]||0), 0);
+}
+
+function renderComparison(){
+  const aStart = document.getElementById('cmp-a-start').value;
+  const aEnd   = document.getElementById('cmp-a-end').value;
+  const bStart = document.getElementById('cmp-b-start').value;
+  const bEnd   = document.getElementById('cmp-b-end').value;
+  const el     = document.getElementById('comparison-result');
+
+  if(!aStart||!aEnd||!bStart||!bEnd){
+    el.innerHTML = `<div style="color:var(--muted);font-size:.85rem;text-align:center;padding:12px;">Sélectionnez les deux périodes pour comparer.</div>`;
+    return;
+  }
+
+  const ventes = getVentes();
+  const achats = getAchats();
+
+  const aVentes = calcPeriod(ventes, aStart, aEnd);
+  const bVentes = calcPeriod(ventes, bStart, bEnd);
+  const aAchats = calcPeriod(achats, aStart, aEnd);
+  const bAchats = calcPeriod(achats, bStart, bEnd);
+  const aBenef  = aVentes - aAchats;
+  const bBenef  = bVentes - bAchats;
+  const aVQty   = ventes.filter(v=>v.date>=aStart&&v.date<=aEnd).reduce((s,v)=>s+Number(v.qty),0);
+  const bVQty   = ventes.filter(v=>v.date>=bStart&&v.date<=bEnd).reduce((s,v)=>s+Number(v.qty),0);
+
+  const diff = (a, b) => {
+    if(b===0) return a>0 ? {pct:'nouveau',cls:'profit-positive',arrow:'↑'} : {pct:'—',cls:'',arrow:''};
+    const p = ((a-b)/b*100).toFixed(1);
+    const up = a >= b;
+    return { pct: (up?'+':'')+p+'%', cls: up?'profit-positive':'profit-negative', arrow: up?'↑':'↓' };
+  };
+
+  const fmtD = d => new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+  const labelA = `${fmtD(aStart)} → ${fmtD(aEnd)}`;
+  const labelB = `${fmtD(bStart)} → ${fmtD(bEnd)}`;
+
+  const row = (label, a, b, isMoney=true) => {
+    const d = diff(a, b);
+    const fA = isMoney ? fmt(a)+' DT' : a+' u.';
+    const fB = isMoney ? fmt(b)+' DT' : b+' u.';
+    return `<div class="report-item">
+      <span style="font-weight:500;">${label}</span>
+      <div style="display:flex;gap:16px;align-items:center;">
+        <span style="color:var(--accent);font-family:var(--font-mono);font-size:.85rem;font-weight:700;">${fA}</span>
+        <span style="color:#1D4ED8;font-family:var(--font-mono);font-size:.85rem;font-weight:700;">${fB}</span>
+        <span class="${d.cls}" style="font-family:var(--font-mono);font-size:.8rem;font-weight:700;min-width:60px;text-align:right;">${d.arrow} ${d.pct}</span>
+      </div>
+    </div>`;
+  };
+
+  el.innerHTML = `
+    <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:.78rem;"><div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div><span style="color:var(--muted);">Période A : ${labelA}</span></div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:.78rem;"><div style="width:10px;height:10px;border-radius:50%;background:#1D4ED8;"></div><span style="color:var(--muted);">Période B : ${labelB}</span></div>
+    </div>
+    ${row('Ventes (CA)', aVentes, bVentes)}
+    ${row('Achats (coût)', aAchats, bAchats)}
+    ${row('Bénéfice brut', aBenef, bBenef)}
+    ${row('Unités vendues', aVQty, bVQty, false)}
+  `;
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────
+function exportData(format){
+  const products = getProducts();
+  const achats   = getAchats();
+  const ventes   = getVentes();
+
+  if(format === 'json'){
+    const data = { products, achats, ventes,
+      exported: new Date().toLocaleString('fr-FR') };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    downloadBlob(blob, 'mon-magasin-backup.json');
+    showToast('Export JSON téléchargé ✓');
+    return;
+  }
+
+  if(format === 'excel'){
+    // Build workbook with 3 sheets
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1 — Products
+    const prodRows = products.map(p => ({
+      'Code':        p.code,
+      'Article':     p.article,
+      'Marque':      p.marque,
+      'Stock Initial': p.stock,
+      'Stock Actuel': getStockForProduct(p.id, p.stock),
+      "Prix d'Achat (DT)": p.prixAchat||0,
+      'Prix de Vente (DT)': p.prixVente||0,
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prodRows), 'Produits');
+
+    // Sheet 2 — Achats
+    const achatRows = achats.map(a => ({
+      'Date':        a.date||'',
+      'Code':        a.code,
+      'Article':     a.article,
+      'Marque':      a.marque,
+      'Quantité':    a.qty,
+      "Prix d'Achat (DT)": a.prix,
+      'Total (DT)':  a.total,
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(achatRows), 'Achats');
+
+    // Sheet 3 — Ventes
+    const venteRows = ventes.map(v => ({
+      'Date':        v.date||'',
+      'Code':        v.code,
+      'Article':     v.article,
+      'Marque':      v.marque,
+      'Quantité':    v.qty,
+      'Prix de Vente (DT)': v.prix,
+      'Total (DT)':  v.total,
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(venteRows), 'Ventes');
+
+    const date = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `mon-magasin-${date}.xlsx`);
+    showToast('Export Excel téléchargé ✓');
+  }
+}
+
+function importBackup(input){
+  const file = input.files[0];
+  if(!file) return;
+  input.value = '';
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!data.products && !data.achats && !data.ventes){
+        showToast('Fichier invalide — pas un backup Mon Magasin', 'error'); return;
+      }
+      if(!confirm(`Restaurer la sauvegarde du ${data.exported||'?'} ?\nCela remplacera toutes vos données actuelles.`)) return;
+      if(Array.isArray(data.products)) DB.set('products', data.products);
+      if(Array.isArray(data.achats))   DB.set('achats',   data.achats);
+      if(Array.isArray(data.ventes))   DB.set('ventes',   data.ventes);
+      renderPage('stock');
+      renderDashboard();
+      updateBadges();
+      showToast('Sauvegarde restaurée ✓');
+    } catch(e){
+      showToast('Erreur lecture fichier JSON', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ── PRINT ───────────────────────────────────────────────────────────

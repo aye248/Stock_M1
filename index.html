@@ -2211,7 +2211,7 @@ function importFromExcel(file){
             stock:     colStock   ? parseNum(r[colStock])            : 0,
             prixAchat: colAchat   ? parseNum(r[colAchat])            : 0,
             prixVente: colVente   ? parseNum(r[colVente])            : 0,
-            date:      colDate    ? String(r[colDate]||'').trim()    : new Date().toISOString().split('T')[0],
+            date:      colDate    ? String(r[colDate]||'').trim()    : '',
             icon: '📦',
           };
         })
@@ -2347,7 +2347,7 @@ function importAchatsFromExcel(file){
         if(!prod){ skipped++; return; }
 
         const dateRaw = r[colDate];
-        let date = new Date().toISOString().split('T')[0];
+        let date = '';
         if(dateRaw){
           if(typeof dateRaw==='number'){
             const d = new Date(Math.round((dateRaw-25569)*86400*1000));
@@ -2427,7 +2427,7 @@ function importVentesFromExcel(file){
         if(!prod){ skipped++; return; }
 
         const dateRaw = r[colDate];
-        let date = new Date().toISOString().split('T')[0];
+        let date = '';
         if(dateRaw){
           if(typeof dateRaw==='number'){
             const d = new Date(Math.round((dateRaw-25569)*86400*1000));

@@ -524,7 +524,7 @@ tbody tr:hover td{background:var(--bg);}
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Code</th><th>Article</th><th>Marque</th><th>Stock</th><th>Prix Achat</th><th>Prix Vente</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Date</th><th>Code</th><th>Article</th><th>Marque</th><th>Stock</th><th>Prix Achat</th><th>Prix Vente</th><th>Statut</th><th>Actions</th></tr></thead>
           <tbody id="products-table"></tbody>
         </table>
       </div>
@@ -682,7 +682,7 @@ tbody tr:hover td{background:var(--bg);}
       <div class="table-wrap">
         <div style="padding:16px 18px;border-bottom:1px solid var(--border);font-family:var(--font-head);font-weight:700;">Suivi du stock par produit</div>
         <table>
-          <thead><tr><th>Code</th><th>Article</th><th>Marque</th><th>Stock Initial</th><th>Entrées</th><th>Sorties</th><th>Stock Actuel</th><th>Prix Achat</th><th>Prix Vente</th><th>Statut</th></tr></thead>
+          <thead><tr><th>Date</th><th>Code</th><th>Article</th><th>Marque</th><th>Stock Initial</th><th>Entrées</th><th>Sorties</th><th>Stock Actuel</th><th>Prix Achat</th><th>Prix Vente</th><th>Statut</th></tr></thead>
           <tbody id="stock-table"></tbody>
         </table>
       </div>
@@ -1342,13 +1342,13 @@ function renderProducts(){
     const badge = s===0?'badge-red':s<=2?'badge-amber':'badge-green';
     const label = s===0?'Rupture':s<=2?'Faible':'En stock';
     return `<tr>
+      <td><span class="code">${p.date||'—'}</span></td>
       <td><span class="code">${p.code}</span></td>
       <td>${p.icon||'📦'} <strong>${p.article}</strong></td>
       <td>${p.marque}</td>
       <td><strong>${s}</strong></td>
       <td>${p.prixAchat?fmt(p.prixAchat)+' DT':'—'}</td>
       <td>${p.prixVente?fmt(p.prixVente)+' DT':'—'}</td>
-      <td><span class="code">${p.date||'—'}</span></td>
       <td><span class="badge ${badge}">${label}</span></td>
       <td style="display:flex;gap:6px;">
         <button class="btn btn-ghost btn-sm" onclick="editProduct('${p.id}')">✏</button>
@@ -1640,6 +1640,7 @@ function renderStockReport(){
       const badge = stockFinal===0?'badge-red':stockFinal<=2?'badge-amber':'badge-green';
       const label = stockFinal===0?'Rupture':stockFinal<=2?'Faible':'OK';
       return `<tr>
+        <td><span class="code">${p.date||'—'}</span></td>
         <td><span class="code">${p.code}</span></td>
         <td>${p.icon||'📦'} <strong>${p.article}</strong></td>
         <td>${p.marque}</td>

@@ -2309,35 +2309,47 @@ function importAchatsFromExcel(file){
     try {
       const wb = XLSX.read(e.target.result,{type:'binary'});
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json(ws,{defval:''});
+      const raw = XLSX.utils.sheet_to_json(ws,{defval:'', raw:false});
       if(!raw.length){ showToast('Fichier vide ou non reconnu','error'); return; }
 
       const keys = Object.keys(raw[0]).map(k=>k.trim());
-      const find = (...words) => keys.find(k=>words.some(w=>k.toLowerCase().includes(w)))||null;
-      const colDate  = find('date');
-      const colCode  = find('code');
-      const colQty   = find('qté','quantit','qty','quantité');
-      const colPrix  = find('achat','prix');
+      const detect = (priorities) => {
+        for(const words of priorities){
+          const col = keys.find(k => words.every(w => k.toLowerCase().includes(w)));
+          if(col) return col;
+        }
+        return null;
+      };
+
+      const colDate  = detect([['date']]);
+      const colCode  = detect([['code article'],['code art'],['référence'],['ref'],['code']]);
+      const colQty   = detect([['quantité'],['qté'],['quantit'],['qty']]);
+      const colPrix  = detect([["prix d'achat"],['prix achat'],['achat'],['prix']]);
+
+      const parseNum = v => {
+        if(!v && v!==0) return 0;
+        const n = parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
+        return isNaN(n)?0:n;
+      };
 
       const products = getProducts();
       let added=0, skipped=0;
       const newAchats = [...getAchats()];
 
       raw.forEach(r=>{
-        const code = String(r[colCode]||'').trim();
-        const qty  = Number(r[colQty])||0;
-        const prix = Number(r[colPrix])||0;
-        if(!code||!qty) { skipped++; return; }
+        const code = colCode ? String(r[colCode]||'').trim() : '';
+        const qty  = parseNum(r[colQty]);
+        const prix = parseNum(r[colPrix]);
+        if(!code||!qty){ skipped++; return; }
 
         const prod = products.find(p=>p.code.toLowerCase()===code.toLowerCase());
         if(!prod){ skipped++; return; }
 
         const dateRaw = r[colDate];
-        let date = '';
+        let date = new Date().toISOString().split('T')[0];
         if(dateRaw){
           if(typeof dateRaw==='number'){
-            // Excel serial date
-            const d = new Date(Math.round((dateRaw - 25569)*86400*1000));
+            const d = new Date(Math.round((dateRaw-25569)*86400*1000));
             date = d.toISOString().split('T')[0];
           } else {
             const parsed = new Date(dateRaw);
@@ -2377,34 +2389,47 @@ function importVentesFromExcel(file){
     try {
       const wb = XLSX.read(e.target.result,{type:'binary'});
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json(ws,{defval:''});
+      const raw = XLSX.utils.sheet_to_json(ws,{defval:'', raw:false});
       if(!raw.length){ showToast('Fichier vide ou non reconnu','error'); return; }
 
       const keys = Object.keys(raw[0]).map(k=>k.trim());
-      const find = (...words) => keys.find(k=>words.some(w=>k.toLowerCase().includes(w)))||null;
-      const colDate  = find('date');
-      const colCode  = find('code');
-      const colQty   = find('qté','quantit','qty','quantité');
-      const colPrix  = find('vente','prix');
+      const detect = (priorities) => {
+        for(const words of priorities){
+          const col = keys.find(k => words.every(w => k.toLowerCase().includes(w)));
+          if(col) return col;
+        }
+        return null;
+      };
+
+      const colDate  = detect([['date']]);
+      const colCode  = detect([['code article'],['code art'],['référence'],['ref'],['code']]);
+      const colQty   = detect([['quantité'],['qté'],['quantit'],['qty']]);
+      const colPrix  = detect([['prix de vente'],['prix vente'],['vente'],['prix']]);
+
+      const parseNum = v => {
+        if(!v && v!==0) return 0;
+        const n = parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
+        return isNaN(n)?0:n;
+      };
 
       const products = getProducts();
       let added=0, skipped=0;
       const newVentes = [...getVentes()];
 
       raw.forEach(r=>{
-        const code = String(r[colCode]||'').trim();
-        const qty  = Number(r[colQty])||0;
-        const prix = Number(r[colPrix])||0;
+        const code = colCode ? String(r[colCode]||'').trim() : '';
+        const qty  = parseNum(r[colQty]);
+        const prix = parseNum(r[colPrix]);
         if(!code||!qty){ skipped++; return; }
 
         const prod = products.find(p=>p.code.toLowerCase()===code.toLowerCase());
         if(!prod){ skipped++; return; }
 
         const dateRaw = r[colDate];
-        let date = '';
+        let date = new Date().toISOString().split('T')[0];
         if(dateRaw){
           if(typeof dateRaw==='number'){
-            const d = new Date(Math.round((dateRaw - 25569)*86400*1000));
+            const d = new Date(Math.round((dateRaw-25569)*86400*1000));
             date = d.toISOString().split('T')[0];
           } else {
             const parsed = new Date(dateRaw);

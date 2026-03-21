@@ -524,7 +524,7 @@ tbody tr:hover td{background:var(--bg);}
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Code</th><th>Article</th><th>Marque</th><th>Stock</th><th>Prix Achat</th><th>Prix Vente</th><th>Statut</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Code</th><th>Article</th><th>Marque</th><th>Stock</th><th>Prix Achat</th><th>Prix Vente</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
           <tbody id="products-table"></tbody>
         </table>
       </div>
@@ -756,9 +756,13 @@ tbody tr:hover td{background:var(--bg);}
           <input type="number" id="p-stock" placeholder="0" min="0"/>
         </div>
         <div class="form-group">
-          <label>Icône (emoji)</label>
-          <input type="text" id="p-icon" placeholder="🧊"/>
+          <label>Date d'ajout</label>
+          <input type="date" id="p-date"/>
         </div>
+      </div>
+      <div class="form-group">
+        <label>Icône (emoji)</label>
+        <input type="text" id="p-icon" placeholder="🧊"/>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -1164,16 +1168,7 @@ function logout(){
 
 // ── SEED DATA ─────────────────────────────────────────────────────
 function seedData(){
-  if(getProducts().length > 0) return;
-  const products = [
-    {id:uid(), code:'RDNE550S', article:'Réfrigérateur', marque:'beKo', stock:10, prixAchat:1530, prixVente:1720, icon:'🧊'},
-    {id:uid(), code:'BDE6210BK', article:'Télévision', marque:'Brandt', stock:2, prixAchat:0, prixVente:0, icon:'📺'},
-    {id:uid(), code:'CRD45V4', article:'Four', marque:'Condor', stock:2, prixAchat:1530, prixVente:1720, icon:'🍳'},
-  ];
-  DB.set('products', products);
-  const p0 = products[0].id;
-  DB.set('achats', [{id:uid(), date:'2026-03-14', productId:p0, code:'RDNE550S', article:'Réfrigérateur', marque:'beKo', qty:2, prix:1530, total:3060}]);
-  DB.set('ventes', [{id:uid(), date:'2026-03-15', productId:p0, code:'RDNE550S', article:'Réfrigérateur', marque:'beKo', qty:10, prix:1720, total:17200}]);
+  // No default data — start empty
 }
 
 // ── NAVIGATION ─────────────────────────────────────────────────────
@@ -1353,6 +1348,7 @@ function renderProducts(){
       <td><strong>${s}</strong></td>
       <td>${p.prixAchat?fmt(p.prixAchat)+' DT':'—'}</td>
       <td>${p.prixVente?fmt(p.prixVente)+' DT':'—'}</td>
+      <td><span class="code">${p.date||'—'}</span></td>
       <td><span class="badge ${badge}">${label}</span></td>
       <td style="display:flex;gap:6px;">
         <button class="btn btn-ghost btn-sm" onclick="editProduct('${p.id}')">✏</button>
@@ -1365,13 +1361,17 @@ function renderProducts(){
 function openModal(id){
   document.getElementById(id).classList.add('open');
   if(id==='modal-achat'||id==='modal-vente') populateProductSelects();
+  if(id==='modal-product'){
+    const dateEl = document.getElementById('p-date');
+    if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  }
 }
 function closeModal(id){
   document.getElementById(id).classList.remove('open');
   if(id==='modal-product'){
     document.getElementById('product-edit-id').value='';
     document.getElementById('modal-product-title').textContent='Nouveau Produit';
-    ['p-code','p-marque','p-article','p-stock','p-icon','p-prix-achat','p-prix-vente'].forEach(f=>document.getElementById(f).value='');
+    ['p-code','p-marque','p-article','p-stock','p-icon','p-prix-achat','p-prix-vente','p-date'].forEach(f=>document.getElementById(f).value='');
   }
   if(id==='modal-achat'){
     ['achat-edit-id','a-date','a-qty','a-prix','a-total'].forEach(f=>document.getElementById(f).value='');
@@ -1397,6 +1397,7 @@ function saveProduct(){
     prixAchat: Number(document.getElementById('p-prix-achat').value)||0,
     prixVente: Number(document.getElementById('p-prix-vente').value)||0,
     icon: document.getElementById('p-icon').value||'📦',
+    date: document.getElementById('p-date').value||new Date().toISOString().split('T')[0],
   };
   let products = getProducts();
   if(id){
@@ -1424,6 +1425,7 @@ function editProduct(id){
   document.getElementById('p-icon').value = p.icon||'';
   document.getElementById('p-prix-achat').value = p.prixAchat||'';
   document.getElementById('p-prix-vente').value = p.prixVente||'';
+  document.getElementById('p-date').value = p.date||'';
   openModal('modal-product');
 }
 
@@ -2180,6 +2182,7 @@ function importFromExcel(file){
       const colStock   = detect([['stock initial'],['stock init'],['quantité initiale'],['qté init'],['stock'],['quantité'],['qté']]);
       const colAchat   = detect([["prix d'achat"],['prix achat'],['coût'],['achat']]);
       const colVente   = detect([['prix de vente'],['prix vente'],['tarif'],['vente']]);
+      const colDate    = detect([['date'],['date ajout'],['date création']]);
 
       // ── Parse each row ─────────────────────────────────────────
       const parseNum = v => {
@@ -2207,6 +2210,7 @@ function importFromExcel(file){
             stock:     colStock   ? parseNum(r[colStock])            : 0,
             prixAchat: colAchat   ? parseNum(r[colAchat])            : 0,
             prixVente: colVente   ? parseNum(r[colVente])            : 0,
+            date:      colDate    ? String(r[colDate]||'').trim()    : new Date().toISOString().split('T')[0],
             icon: '📦',
           };
         })

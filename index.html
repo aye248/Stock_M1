@@ -1169,9 +1169,12 @@ function showCloudScreen(){
 }
 
 function logout(){
-  if(!confirm('Se déconnecter ? Les données locales de cet appareil seront effacées.')) return;
-  localStorage.clear();
-  useCloud = false; cloudBinId = '';
+  if(!confirm('Se déconnecter de ce compte ?')) return;
+  // Only remove auth credentials — keep all local data intact
+  localStorage.removeItem(CLOUD_KEY);
+  useCloud = false;
+  cloudBinId = '';
+  if(autoSyncInterval){ clearInterval(autoSyncInterval); autoSyncInterval = null; }
   setTimeout(()=>location.reload(), 300);
 }
 
@@ -2955,4 +2958,4 @@ function printSection(name){
 }
 </script>
 </body>
-</html> 
+</html>

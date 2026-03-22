@@ -251,13 +251,11 @@ tbody tr:hover td{background:var(--bg);}
   .form-row{ grid-template-columns:1fr !important; }
 
   /* Cloud screen */
-  #cloud-screen > div{
     border-radius:20px 20px 0 0;
     max-height:92vh;
     align-self:flex-end;
     max-width:100% !important;
   }
-  #cloud-screen{
     align-items:flex-end !important;
   }
 
@@ -359,6 +357,11 @@ tbody tr:hover td{background:var(--bg);}
     </button>
   </nav>
   <div class="sidebar-footer" style="padding:12px;display:flex;flex-direction:column;gap:8px;">
+    <button onclick="showCloudScreen()" style="width:100%;background:rgba(107,191,97,.12);
+      border:1px solid rgba(107,191,97,.25);border-radius:10px;padding:10px 14px;color:#6BBF61;
+      font-family:var(--font-body);font-size:.82rem;font-weight:600;cursor:pointer;text-align:left;">
+      ☁ Configurer Cloud
+    </button>
     <button onclick="logout()" id="logout-btn" style="display:none;width:100%;background:rgba(192,57,43,.15);
       border:1px solid rgba(192,57,43,.3);border-radius:10px;padding:10px 14px;color:#f87171;
       font-family:var(--font-body);font-size:.82rem;font-weight:600;cursor:pointer;
@@ -442,6 +445,62 @@ tbody tr:hover td{background:var(--bg);}
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
+
+      <!-- SUPABASE LOGIN PAGE — shown when not connected -->
+      <div id="supabase-config-card" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;">
+        <div style="width:100%;max-width:420px;padding:24px;">
+
+          <!-- Logo -->
+          <div style="text-align:center;margin-bottom:36px;">
+            <div style="font-size:2.5rem;margin-bottom:8px;">◈</div>
+            <div style="font-family:var(--font-head);font-size:1.6rem;font-weight:800;color:var(--text);">Mon Magasin</div>
+            <div style="font-size:.85rem;color:var(--muted);margin-top:4px;">Connectez votre espace cloud pour commencer</div>
+          </div>
+
+          <!-- Card -->
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:20px;padding:32px;box-shadow:0 8px 40px rgba(0,0,0,.08);">
+            <div style="font-family:var(--font-head);font-weight:700;font-size:1rem;margin-bottom:20px;color:var(--text);">☁ Connexion Supabase</div>
+
+            <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px;">
+              <div>
+                <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:6px;">Project URL</label>
+                <input id="sb-url" type="text" placeholder="https://xxxx.supabase.co"
+                  style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:var(--font-mono);font-size:.82rem;color:var(--text);outline:none;transition:border .2s;box-sizing:border-box;"
+                  onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+              </div>
+              <div>
+                <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:6px;">Anon Public Key</label>
+                <div style="position:relative;">
+                  <input id="sb-key" type="password" placeholder="eyJhbGci..."
+                    style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:12px 40px 12px 14px;font-family:var(--font-mono);font-size:.82rem;color:var(--text);outline:none;transition:border .2s;box-sizing:border-box;"
+                    onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+                    onkeydown="if(event.key==='Enter') connectSupabase()"/>
+                  <button type="button" onclick="const i=document.getElementById('sb-key');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'"
+                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.9rem;padding:4px;">👁</button>
+                </div>
+              </div>
+            </div>
+
+            <button id="sb-connect-btn" onclick="connectSupabase()"
+              style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px;font-family:var(--font-body);font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s;margin-bottom:10px;">
+              ☁ Se connecter
+            </button>
+
+            <button onclick="skipCloud()"
+              style="width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:12px;padding:12px;font-family:var(--font-body);font-size:.85rem;font-weight:600;cursor:pointer;">
+              Continuer en mode local
+            </button>
+
+            <div id="sb-status" style="display:none;margin-top:14px;border-radius:10px;padding:10px 14px;font-size:.83rem;line-height:1.6;"></div>
+          </div>
+
+          <!-- Help -->
+          <div style="text-align:center;margin-top:16px;font-size:.78rem;color:var(--muted);line-height:1.8;">
+            Pas de compte ? <a href="https://supabase.com" target="_blank" style="color:var(--accent);font-weight:600;">supabase.com</a> → gratuit<br/>
+            <span style="font-size:.72rem;">Settings → API → copiez Project URL + anon key</span>
+          </div>
+        </div>
+      </div>
       <div class="stat-grid">
         <div class="stat-card green">
           <div class="stat-label">Produits</div>
@@ -906,103 +965,6 @@ tbody tr:hover td{background:var(--bg);}
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- CLOUD AUTH SCREEN -->
-<div id="cloud-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;
-  align-items:center;justify-content:center;padding:24px;">
-  <div style="background:var(--white);border:1px solid var(--border);border-radius:24px;
-    padding:36px;max-width:460px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.12);max-height:95vh;overflow-y:auto;">
-
-    <div style="font-family:var(--font-head);font-size:1.4rem;font-weight:800;margin-bottom:4px;">☁ Multi-Appareils</div>
-    <div style="color:var(--muted);font-size:.85rem;margin-bottom:20px;line-height:1.6;">
-      Synchronisez vos données sur tous vos appareils.
-    </div>
-
-    <!-- TABS -->
-    <div style="display:flex;gap:6px;margin-bottom:20px;background:var(--bg2);padding:5px;border-radius:12px;">
-      <button id="tab-login" onclick="switchAuthTab('login')"
-        style="flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;font-weight:700;cursor:pointer;background:var(--dark);color:#fff;">
-        Se connecter
-      </button>
-      <button id="tab-signup" onclick="switchAuthTab('signup')"
-        style="flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);">
-        Créer un compte
-      </button>
-    </div>
-
-    <!-- SIGNUP FIELDS -->
-    <div id="signup-fields" style="display:none;">
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:.8rem;line-height:1.8;">
-        <strong style="color:var(--accent);">Obtenez votre clé JSONBin gratuite :</strong><br/>
-        1. Allez sur <a href="https://jsonbin.io" target="_blank" style="color:var(--accent);font-weight:600;">jsonbin.io</a> → <strong>Sign Up</strong> (gratuit)<br/>
-        2. Cliquez <strong>API Keys</strong> → copiez la <strong>Master Key</strong>
-      </div>
-      <div style="margin-bottom:12px;">
-        <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Master Key JSONBin</label>
-        <div style="display:flex;gap:6px;">
-          <input id="signup-key" type="password" placeholder="$2a$10$..."
-            style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:var(--font-mono);font-size:.8rem;color:var(--text);outline:none;" oninput="this.value=this.value.trim()"/>
-          <button type="button" onclick="const i=document.getElementById('signup-key');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'"
-            style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;">👁</button>
-        </div>
-      </div>
-      <div style="margin-bottom:16px;">
-        <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Nom du magasin</label>
-        <input id="signup-name" type="text" placeholder="ex: Mon Magasin"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:var(--font-body);font-size:.9rem;color:var(--text);outline:none;"/>
-      </div>
-      <button onclick="doSignup()" id="signup-btn"
-        style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-family:var(--font-body);font-size:.9rem;font-weight:700;cursor:pointer;margin-bottom:10px;">
-        Créer mon espace cloud
-      </button>
-      <!-- Shown after signup -->
-      <div id="signup-result" style="display:none;background:#dcfce7;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;font-size:.83rem;line-height:1.9;">
-        <strong style="color:#166534;">✓ Compte créé ! Copiez et sauvegardez votre Bin ID :</strong><br/>
-        <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
-          <code id="signup-binid-display" style="flex:1;background:var(--bg);padding:8px 12px;border-radius:8px;font-size:.78rem;word-break:break-all;border:1px solid var(--border);"></code>
-          <button onclick="navigator.clipboard.writeText(document.getElementById('signup-binid-display').textContent);this.textContent='✓';setTimeout(()=>this.textContent='📋',1500)"
-            style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:.85rem;flex-shrink:0;">📋</button>
-        </div>
-        <div style="color:#166534;font-size:.78rem;margin-top:8px;font-weight:600;">
-          ⚠ Notez ce Bin ID — vous en aurez besoin sur chaque nouvel appareil pour vous connecter.
-        </div>
-      </div>
-    </div>
-
-    <!-- LOGIN FIELDS -->
-    <div id="login-fields">
-      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">
-        <div>
-          <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Master Key JSONBin</label>
-          <div style="display:flex;gap:6px;">
-            <input id="login-key" type="password" placeholder="$2a$10$..."
-              style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:var(--font-mono);font-size:.8rem;color:var(--text);outline:none;" oninput="this.value=this.value.trim()"/>
-            <button type="button" onclick="const i=document.getElementById('login-key');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'"
-              style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;">👁</button>
-          </div>
-        </div>
-        <div>
-          <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px;">Bin ID</label>
-          <input id="login-binid" type="text" placeholder="ex: 64abc123def456..."
-            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:var(--font-mono);font-size:.82rem;color:var(--text);outline:none;" oninput="this.value=this.value.trim()"
-            onkeydown="if(event.key==='Enter') doLogin()"/>
-          <div style="font-size:.75rem;color:var(--muted);margin-top:4px;">Donné lors de la création du compte — copiez-le depuis votre sauvegarde.</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;margin-bottom:10px;">
-        <button onclick="skipCloud()" id="auth-skip-btn"
-          style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:var(--font-body);font-size:.85rem;font-weight:600;cursor:pointer;color:var(--muted);">
-          Local seulement
-        </button>
-        <button onclick="doLogin()" id="login-btn"
-          style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px;font-family:var(--font-body);font-size:.9rem;font-weight:700;cursor:pointer;">
-          Se connecter
-        </button>
-      </div>
-    </div>
-
-    <div id="auth-status" style="display:none;border-radius:10px;padding:11px 14px;font-size:.83rem;line-height:1.5;"></div>
-  </div>
-</div>
 
 <style>
 .cloud-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);
@@ -1013,18 +975,18 @@ tbody tr:hover td{background:var(--bg);}
 </style>
 
 <script>
-// ── CLOUD (JSONBin — Bin ID approach, no searching) ────────────────
-const CLOUD_KEY = 'cloud_cfg';
-let useCloud = false, cloudBinId = '';
+// ── SUPABASE CLOUD ────────────────────────────────────────────────
+const CLOUD_KEY = 'sb_config';
+let useCloud = false, sbUrl = '', sbKey = '', cloudBinId = 'store';
+
 const KEYS = ['products','achats','ventes','trash_products','trash_achats','trash_ventes'];
 
-// ── LOCAL DB — always the source of truth ─────────────────────────
+// ── LOCAL DB ──────────────────────────────────────────────────────
 const DB = {
   get: k => { try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){return [];} },
   set: (k,v) => {
-    try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ console.error('localStorage error',e); }
-    // Push to cloud silently after saving locally — never blocks local save
-    if(useCloud && cloudBinId) setTimeout(()=>cloudPush().catch(()=>{}), 100);
+    try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){}
+    if(useCloud) setTimeout(()=>sbPush(k,v).catch(()=>{}), 100);
   },
 };
 
@@ -1036,154 +998,206 @@ function getSavedAuth(){ try{return JSON.parse(localStorage.getItem(CLOUD_KEY)||
 function saveAuth(o){ localStorage.setItem(CLOUD_KEY,JSON.stringify(o)); }
 function getAllLocal(){ const o={}; KEYS.forEach(k=>o[k]=DB.get(k)); return o; }
 
-// ── CLOUD — background only, never blocks UI ──────────────────────
-async function jbReq(url, method='GET', body=null, key=null){
-  const k = key || getSavedAuth()?.jbkey || '';
-  if(!k) throw new Error('Pas de clé API');
-  const h = {'Content-Type':'application/json','X-Master-Key':k,'X-Access-Key':k};
-  if(method==='PUT') h['X-Bin-Versioning']='false';
+// ── SUPABASE API ──────────────────────────────────────────────────
+// We use a single row in a 'store' table with all data as JSON
+async function sbReq(path, method='GET', body=null){
+  const h = {
+    'Content-Type': 'application/json',
+    'apikey': sbKey,
+    'Authorization': 'Bearer '+sbKey,
+    'Prefer': method==='POST' ? 'resolution=merge-duplicates,return=minimal' : 'return=minimal'
+  };
   const opts = {method, headers:h};
   if(body) opts.body = JSON.stringify(body);
-  const r = await fetch(url, opts);
-  const t = await r.text();
-  try{ return {ok:r.ok, status:r.status, data:JSON.parse(t)}; }
-  catch(e){ return {ok:r.ok, status:r.status, data:t}; }
-}
-
-async function cloudPush(){
-  if(!cloudBinId || !useCloud) return;
-  await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}`, 'PUT', getAllLocal());
-}
-
-// Pull from cloud — only used on login or manual actualiser
-// Never called automatically to avoid overwriting local data
-async function cloudPullForce(){
-  const r = await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
-  if(!r.ok) throw new Error('Lecture échouée ('+r.status+')');
-  const data = r.data?.record || {};
-  KEYS.forEach(k=>{ if(Array.isArray(data[k])) localStorage.setItem(k, JSON.stringify(data[k])); });
-}
-
-// ── SIGNUP ────────────────────────────────────────────────────────
-async function doSignup(){
-  const key  = document.getElementById('signup-key').value.trim();
-  const name = document.getElementById('signup-name').value.trim() || 'Mon Magasin';
-  if(!key){ setAuthStatus('⚠ Entrez votre Master Key JSONBin.','error'); return; }
-  const btn = document.getElementById('signup-btn');
-  btn.disabled=true; btn.textContent='↻ Création...'; btn.style.opacity='.65';
-  setAuthStatus('','none');
-  try{
-    const r = await jbReq('https://api.jsonbin.io/v3/b', 'POST', getAllLocal(), key);
-    if(!r.ok){
-      if(r.status===401||r.status===403) throw new Error('Master Key incorrecte. Vérifiez sur jsonbin.io → API Keys.');
-      throw new Error('Erreur ('+r.status+'): '+(r.data?.message||''));
-    }
-    const binId = r.data?.metadata?.id;
-    if(!binId) throw new Error('Bin ID non reçu — réessayez.');
-    saveAuth({jbkey:key, binId, label:name});
-    cloudBinId = binId; useCloud = true;
-    document.getElementById('signup-binid-display').textContent = binId;
-    document.getElementById('signup-result').style.display = 'block';
-    btn.textContent = '✓ Créé !';
-    setBadge('online');
-    setTimeout(()=>{
-      document.getElementById('cloud-screen').style.display = 'none';
-      launchApp(); showToast('☁ Compte créé — '+name);
-    }, 4000);
-  } catch(e){
-    setAuthStatus('⚠ '+e.message, 'error');
-    btn.disabled=false; btn.textContent='Créer mon espace cloud'; btn.style.opacity='1';
+  const r = await fetch(sbUrl+'/rest/v1/'+path, opts);
+  if(method==='GET' && r.ok){
+    const t = await r.text();
+    try{ return JSON.parse(t); }catch(e){ return []; }
   }
+  return {ok:r.ok, status:r.status};
 }
 
-// ── LOGIN ─────────────────────────────────────────────────────────
-async function doLogin(){
-  const key   = document.getElementById('login-key').value.trim();
-  const binId = document.getElementById('login-binid').value.trim();
-  if(!key)   { setAuthStatus('⚠ Entrez votre Master Key JSONBin.','error'); return; }
-  if(!binId) { setAuthStatus('⚠ Entrez votre Bin ID.','error'); return; }
-  const btn = document.getElementById('login-btn');
-  btn.disabled=true; btn.textContent='↻ Connexion...'; btn.style.opacity='.65';
-  setAuthStatus('⏳ Connexion en cours...','loading');
-  try{
-    const r = await jbReq(`https://api.jsonbin.io/v3/b/${binId}/latest`, 'GET', null, key);
-    if(!r.ok){
-      if(r.status===401||r.status===403) throw new Error('Master Key incorrecte.');
-      if(r.status===404) throw new Error('Bin ID introuvable — vérifiez le Bin ID.');
-      throw new Error('Erreur ('+r.status+')');
-    }
-    const data = r.data?.record || {};
-    KEYS.forEach(k=>{
-      const cloudData = Array.isArray(data[k]) ? data[k] : [];
-      const localData = JSON.parse(localStorage.getItem(k)||'[]');
-      if(cloudData.length > localData.length){
-        localStorage.setItem(k, JSON.stringify(cloudData));
+// Push one key to Supabase
+async function sbPush(key, value){
+  if(!useCloud) return;
+  await sbReq('store?on_conflict=key', 'POST', {key, value: JSON.stringify(value)});
+}
+
+// Push all local data to Supabase
+async function sbPushAll(){
+  if(!useCloud) return;
+  const rows = KEYS.map(k=>({key:k, value: JSON.stringify(DB.get(k))}));
+  await sbReq('store?on_conflict=key', 'POST', rows);
+}
+
+// Pull all data from Supabase
+async function sbPull(){
+  const rows = await sbReq('store?select=key,value');
+  if(!Array.isArray(rows)) throw new Error('Pull failed');
+  rows.forEach(row=>{
+    try{
+      const parsed = JSON.parse(row.value);
+      if(Array.isArray(parsed) && parsed.length > 0){
+        localStorage.setItem(row.key, JSON.stringify(parsed));
       }
+    }catch(e){}
+  });
+}
+
+// Create the store table if it doesn't exist via RPC — or check connection
+async function sbInit(){
+  // Test connection by fetching store table
+  const r = await fetch(sbUrl+'/rest/v1/store?select=key&limit=1', {
+    headers:{'apikey':sbKey,'Authorization':'Bearer '+sbKey}
+  });
+  if(r.status === 404 || r.status === 400){
+    throw new Error('Table "store" introuvable. Voir instructions ci-dessous.');
+  }
+  if(r.status === 401 || r.status === 403){
+    throw new Error('Clé API incorrecte.');
+  }
+  if(!r.ok) throw new Error('Connexion échouée ('+r.status+')');
+  return true;
+}
+
+// ── CONNECT ───────────────────────────────────────────────────────
+async function connectSupabase(){
+  const urlEl = document.getElementById('sb-url');
+  const keyEl = document.getElementById('sb-key');
+  const statusEl = document.getElementById('sb-status');
+  const btn = document.getElementById('sb-connect-btn');
+
+  const url = urlEl ? urlEl.value.trim().replace(/\/$/,'') : '';
+  const key = keyEl ? keyEl.value.trim() : '';
+
+  const showStatus = (msg, type) => {
+    if(!statusEl) return;
+    const colors = {
+      error:  'background:#fee2e2;border:1px solid #fecaca;color:#991b1b;',
+      loading:'background:#fefce8;border:1px solid #fde68a;color:#854d0e;',
+      success:'background:#dcfce7;border:1px solid #bbf7d0;color:#166534;',
+    };
+    statusEl.style.cssText = 'display:block;border-radius:10px;padding:10px 14px;font-size:.83rem;line-height:1.6;'+(colors[type]||colors.error);
+    statusEl.innerHTML = msg;
+  };
+
+  if(!url){ showStatus('⚠ Entrez le Project URL.','error'); return; }
+  if(!key){ showStatus('⚠ Entrez l\'Anon Public Key.','error'); return; }
+
+  if(btn){ btn.disabled=true; btn.textContent='↻ Connexion...'; btn.style.opacity='.65'; }
+  showStatus('⏳ Connexion à Supabase...','loading');
+
+  sbUrl = url;
+  sbKey = key;
+
+  try{
+    // Test connection
+    const testR = await fetch(sbUrl+'/rest/v1/store?select=key&limit=1', {
+      headers:{'apikey':sbKey,'Authorization':'Bearer '+sbKey}
     });
-    saveAuth({jbkey:key, binId, label:'Mon Magasin'});
-    cloudBinId = binId; useCloud = true;
-    // Push local data to cloud immediately after login
-    setTimeout(()=>cloudPush().catch(()=>{}), 1000);
+
+    if(testR.status===401||testR.status===403){
+      throw new Error('Clé API incorrecte — vérifiez l\'Anon Public Key.');
+    }
+    if(testR.status===404||testR.status===400){
+      throw new Error('TABLE_MISSING');
+    }
+    if(!testR.ok){
+      throw new Error('Erreur de connexion ('+testR.status+') — vérifiez le Project URL.');
+    }
+
+    showStatus('⏳ Synchronisation...','loading');
+
+    // Pull from cloud first
+    await sbPull();
+
+    // Push local data up
+    await sbPushAll();
+
+    // Save credentials
+    saveAuth({url, key});
+    useCloud = true;
     setBadge('online');
-    document.getElementById('cloud-screen').style.display = 'none';
-    launchApp(); showToast('☁ Connecté ✓');
+
+    showStatus('✓ Connecté avec succès !','success');
+
+    const card = document.getElementById('supabase-config-card');
+    if(card) card.style.display = 'none';
+
+    startAutoSync();
+    renderDashboard();
+    updateBadges();
+    showToast('☁ Supabase connecté ✓');
+
   } catch(e){
-    setAuthStatus('⚠ '+e.message, 'error');
-    btn.disabled=false; btn.textContent='Se connecter'; btn.style.opacity='1';
+    let msg = e.message||'Erreur inconnue';
+    if(msg==='TABLE_MISSING'){
+      msg = `Table "store" introuvable.<br/><br/>
+      <strong>Dans Supabase → SQL Editor, exécutez :</strong><br/>
+      <code style="display:block;background:#f1f5f9;padding:8px;border-radius:6px;margin-top:6px;font-size:.75rem;white-space:pre;">
+create table store (key text primary key, value text);
+alter table store enable row level security;
+create policy "allow all" on store for all using (true) with check (true);</code>`;
+    }
+    showStatus('⚠ '+msg,'error');
+    if(btn){ btn.disabled=false; btn.textContent='☁ Connecter'; btn.style.opacity='1'; }
+    sbUrl=''; sbKey='';
   }
 }
 
-// ── UI HELPERS ────────────────────────────────────────────────────
-let authMode = 'login';
-function switchAuthTab(mode){
-  authMode = mode;
-  const s = mode==='signup';
-  document.getElementById('signup-fields').style.display = s ? 'block':'none';
-  document.getElementById('login-fields').style.display  = s ? 'none':'block';
-  document.getElementById('tab-login').style.cssText  = 'flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;cursor:pointer;'+(s?'background:transparent;color:var(--muted);font-weight:600;':'background:var(--dark);color:#fff;font-weight:700;');
-  document.getElementById('tab-signup').style.cssText = 'flex:1;padding:9px;border:none;border-radius:8px;font-family:var(--font-body);font-size:.88rem;cursor:pointer;'+(s?'background:var(--dark);color:#fff;font-weight:700;':'background:transparent;color:var(--muted);font-weight:600;');
-  document.getElementById('auth-status').style.display = 'none';
+function setSbStatus(msg, type='loading'){
+  const el = document.getElementById('sb-status');
+  if(!el) return;
+  const s = {
+    loading:'background:#fefce8;border:1px solid #fde68a;color:#854d0e;',
+    success:'background:#dcfce7;border:1px solid #bbf7d0;color:#166534;',
+    error:  'background:#fee2e2;border:1px solid #fecaca;color:#991b1b;',
+  };
+  el.style.cssText='display:block;border-radius:10px;padding:11px 14px;font-size:.83rem;line-height:1.6;'+(s[type]||s.loading);
+  el.innerHTML=msg;
 }
-function setAuthStatus(msg, type='error'){
-  const el = document.getElementById('auth-status');
-  if(type==='none'){ el.style.display='none'; return; }
-  const s = {error:'background:#fee2e2;border:1px solid #fecaca;color:#991b1b;', success:'background:#dcfce7;border:1px solid #bbf7d0;color:#166534;', loading:'background:#fefce8;border:1px solid #fde68a;color:#854d0e;'};
-  el.style.cssText = 'display:block;border-radius:10px;padding:11px 14px;font-size:.83rem;line-height:1.5;'+(s[type]||s.error);
-  el.innerHTML = msg;
-}
+
 function skipCloud(){
-  document.getElementById('cloud-screen').style.display = 'none';
-  document.getElementById('logout-btn').style.display   = 'none';
-  // Save a local-only flag so we don't show login on reload
-  if(!getSavedAuth()) saveAuth({local:true, binId:null, jbkey:null});
+  const card = document.getElementById('supabase-config-card');
+  if(card) card.style.display='none';
+  if(!getSavedAuth()) saveAuth({local:true});
   launchApp();
 }
+
 function setBadge(state){
-  const b = document.getElementById('cloud-badge'); if(!b) return;
-  b.className = 'cloud-badge '+state;
-  const a = getSavedAuth();
-  b.innerHTML = state==='online' ? '☁ '+(a?.label||'Cloud') : state==='loading' ? '↻ Sync...' : '💾 Local';
-  const lb = document.getElementById('logout-btn');
-  if(lb) lb.style.display = state==='online' ? 'block':'none';
-  const mlb = document.getElementById('mobile-logout-btn');
-  if(mlb) mlb.style.display = state==='online' ? 'block':'none';
+  const b=document.getElementById('cloud-badge'); if(!b) return;
+  b.className='cloud-badge '+state;
+  const a=getSavedAuth();
+  b.innerHTML=state==='online'?'☁ Supabase':state==='loading'?'↻ Sync...':'💾 Local';
+  const lb=document.getElementById('logout-btn');
+  if(lb) lb.style.display=state==='online'?'block':'none';
+  const mlb=document.getElementById('mobile-logout-btn');
+  if(mlb) mlb.style.display=state==='online'?'block':'none';
 }
+
 function showCloudScreen(){
-  const s = document.getElementById('cloud-screen');
-  s.style.cssText = 'display:flex;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;padding:24px;';
+  const card = document.getElementById('supabase-config-card');
+  if(card) card.style.display = 'flex';
   const a = getSavedAuth();
-  if(a?.jbkey)  document.getElementById('login-key').value   = a.jbkey;
-  if(a?.binId)  document.getElementById('login-binid').value = a.binId;
+  if(a?.url){ const el=document.getElementById('sb-url'); if(el) el.value=a.url; }
+  if(a?.key){ const el=document.getElementById('sb-key'); if(el) el.value=a.key; }
 }
 
 function logout(){
-  if(!confirm('Se déconnecter de ce compte ?')) return;
-  // Only remove auth credentials — keep all local data intact
+  if(!confirm('Se déconnecter ?')) return;
   localStorage.removeItem(CLOUD_KEY);
-  useCloud = false;
-  cloudBinId = '';
-  if(autoSyncInterval){ clearInterval(autoSyncInterval); autoSyncInterval = null; }
+  useCloud=false; sbUrl=''; sbKey='';
+  if(autoSyncInterval){ clearInterval(autoSyncInterval); autoSyncInterval=null; }
   setTimeout(()=>location.reload(), 300);
+}
+
+let autoSyncInterval=null;
+function startAutoSync(){
+  if(autoSyncInterval) clearInterval(autoSyncInterval);
+  autoSyncInterval=setInterval(async()=>{
+    if(!useCloud) return;
+    try{ await sbPushAll(); }catch(e){}
+  }, 45000);
 }
 
 // ── SEED DATA ─────────────────────────────────────────────────────
@@ -1635,14 +1649,7 @@ async function actualiserStock(){
   const btn = document.querySelector('[onclick="actualiserStock()"]');
   if(btn){ btn.textContent='↻ Chargement...'; btn.disabled=true; }
   try{
-    if(useCloud && cloudBinId){
-      // Force pull — override local with cloud regardless
-      const r = await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
-      if(r.ok){
-        const data = r.data?.record || {};
-        KEYS.forEach(k=>{ if(Array.isArray(data[k])) localStorage.setItem(k, JSON.stringify(data[k])); });
-      }
-    }
+    if(useCloud){ await sbPull(); }
   } catch(e){}
   renderStockReport();
   renderDashboard();
@@ -2101,6 +2108,9 @@ function launchApp(){
   const opts = {weekday:'long',year:'numeric',month:'long',day:'numeric'};
   document.getElementById('topbar-date').textContent = now.toLocaleDateString('fr-FR', opts);
   document.getElementById('sidebar-date').textContent = now.getFullYear();
+  // Show login page if not connected to cloud
+  const card = document.getElementById('supabase-config-card');
+  if(card) card.style.display = useCloud ? 'none' : 'flex';
   renderDashboard();
   updateBadges();
   document.querySelectorAll('.modal-overlay').forEach(o=>{
@@ -2111,76 +2121,50 @@ function launchApp(){
       }
     });
   });
-
-  // Auto-sync every 30 seconds when cloud is active
-  if(useCloud && cloudBinId){
-    startAutoSync();
-  }
+  if(useCloud) startAutoSync();
 }
 
-let autoSyncInterval = null;
 
 function startAutoSync(){
   if(autoSyncInterval) clearInterval(autoSyncInterval);
-  // Push local data to cloud every 60 seconds — never pulls automatically
-  autoSyncInterval = setInterval(async ()=>{
-    if(!useCloud || !cloudBinId) return;
-    try{
-      await cloudPush();
-    } catch(e){} // silent — never interrupt the user
-  }, 60000);
+  autoSyncInterval = setInterval(async()=>{
+    if(!useCloud) return;
+    try{ await sbPushAll(); }catch(e){}
+  }, 45000);
 }
 
 async function init(){
-  // Inject cloud badge into topbar
   const topbarRight = document.getElementById('topbar-date').parentElement;
   const badge = document.createElement('div');
   badge.id = 'cloud-badge';
   badge.className = 'cloud-badge local';
   badge.innerHTML = '💾 Local';
-  badge.title = 'Cliquez pour changer de compte';
+  badge.title = 'Cliquez pour configurer le cloud';
   badge.onclick = showCloudScreen;
   topbarRight.prepend(badge);
 
   const auth = getSavedAuth();
-  if(auth && auth.binId){
-    // Has cloud config — try to connect
-    cloudBinId = auth.binId;
+  if(auth && auth.url && auth.key){
+    // Reconnect to Supabase automatically
+    sbUrl = auth.url;
+    sbKey = auth.key;
     try{
       setBadge('loading');
-      // Pull from cloud — only overwrite local if cloud has MORE data
-      const r = await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
-      if(r.ok){
-        const data = r.data?.record || {};
-        KEYS.forEach(k=>{
-          const cloudData  = Array.isArray(data[k]) ? data[k] : [];
-          const localData  = JSON.parse(localStorage.getItem(k)||'[]');
-          // Only take cloud data if it has MORE records than local
-          if(cloudData.length > localData.length){
-            localStorage.setItem(k, JSON.stringify(cloudData));
-          }
-          // If local has data and cloud is empty → push local to cloud
-          else if(localData.length > 0 && cloudData.length === 0){
-            // Will be pushed by cloudPush after launch
-          }
-        });
-        // Push local data to cloud to keep it updated
-        setTimeout(()=>cloudPush().catch(()=>{}), 2000);
-      }
+      await sbInit();
+      await sbPull();
+      await sbPushAll();
       useCloud = true;
       setBadge('online');
-      showToast('☁ Connecté');
       startAutoSync();
     } catch(e){
       setBadge('local');
     }
     launchApp();
-  } else if(auth && auth.local){
-    // Local only mode chosen — skip login
-    launchApp();
   } else {
-    // First time — show login screen
-    showCloudScreen();
+    // Pre-fill if partial config saved
+    if(auth?.url){ const el=document.getElementById('sb-url'); if(el) el.value=auth.url; }
+    if(auth?.key){ const el=document.getElementById('sb-key'); if(el) el.value=auth.key; }
+    launchApp();
   }
 }
 

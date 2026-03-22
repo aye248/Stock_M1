@@ -1018,24 +1018,28 @@ const CLOUD_KEY = 'cloud_cfg';
 let useCloud = false, cloudBinId = '';
 const KEYS = ['products','achats','ventes','trash_products','trash_achats','trash_ventes'];
 
-const LocalDB = {
-  get: k => { try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){return [];} },
-  set: (k,v) => localStorage.setItem(k, JSON.stringify(v)),
-};
+// ── LOCAL DB — always the source of truth ─────────────────────────
 const DB = {
-  get: k => LocalDB.get(k),
-  set: (k,v) => { LocalDB.set(k,v); if(useCloud) cloudPush().catch(()=>{}); },
+  get: k => { try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){return [];} },
+  set: (k,v) => {
+    try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ console.error('localStorage error',e); }
+    // Push to cloud silently after saving locally — never blocks local save
+    if(useCloud && cloudBinId) setTimeout(()=>cloudPush().catch(()=>{}), 100);
+  },
 };
+
 function getProducts(){ return DB.get('products'); }
 function getAchats()  { return DB.get('achats'); }
 function getVentes()  { return DB.get('ventes'); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function getSavedAuth(){ try{return JSON.parse(localStorage.getItem(CLOUD_KEY)||'null');}catch(e){return null;} }
 function saveAuth(o){ localStorage.setItem(CLOUD_KEY,JSON.stringify(o)); }
-function getAllLocal(){ const o={}; KEYS.forEach(k=>o[k]=LocalDB.get(k)); return o; }
+function getAllLocal(){ const o={}; KEYS.forEach(k=>o[k]=DB.get(k)); return o; }
 
+// ── CLOUD — background only, never blocks UI ──────────────────────
 async function jbReq(url, method='GET', body=null, key=null){
   const k = key || getSavedAuth()?.jbkey || '';
+  if(!k) throw new Error('Pas de clé API');
   const h = {'Content-Type':'application/json','X-Master-Key':k,'X-Access-Key':k};
   if(method==='PUT') h['X-Bin-Versioning']='false';
   const opts = {method, headers:h};
@@ -1047,23 +1051,17 @@ async function jbReq(url, method='GET', body=null, key=null){
 }
 
 async function cloudPush(){
-  if(!cloudBinId) return;
+  if(!cloudBinId || !useCloud) return;
   await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}`, 'PUT', getAllLocal());
 }
 
-async function cloudPull(){
+// Pull from cloud — only used on login or manual actualiser
+// Never called automatically to avoid overwriting local data
+async function cloudPullForce(){
   const r = await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
   if(!r.ok) throw new Error('Lecture échouée ('+r.status+')');
   const data = r.data?.record || {};
-  // Only overwrite local if cloud has actual data (not empty)
-  KEYS.forEach(k=>{
-    if(Array.isArray(data[k]) && data[k].length > 0){
-      LocalDB.set(k, data[k]);
-    } else if(Array.isArray(data[k]) && data[k].length === 0 && LocalDB.get(k).length === 0){
-      LocalDB.set(k, []); // both empty, fine
-    }
-    // if cloud empty but local has data → keep local (don't overwrite)
-  });
+  KEYS.forEach(k=>{ if(Array.isArray(data[k])) localStorage.setItem(k, JSON.stringify(data[k])); });
 }
 
 // ── SIGNUP ────────────────────────────────────────────────────────
@@ -1115,7 +1113,7 @@ async function doLogin(){
       throw new Error('Erreur ('+r.status+')');
     }
     const data = r.data?.record || {};
-    KEYS.forEach(k=>{ if(Array.isArray(data[k])) LocalDB.set(k, data[k]); });
+    KEYS.forEach(k=>{ if(Array.isArray(data[k])) localStorage.setItem(k, JSON.stringify(data[k])); });
     saveAuth({jbkey:key, binId, label:'Mon Magasin'});
     cloudBinId = binId; useCloud = true;
     setBadge('online');
@@ -1631,7 +1629,7 @@ async function actualiserStock(){
       const r = await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
       if(r.ok){
         const data = r.data?.record || {};
-        KEYS.forEach(k=>{ if(Array.isArray(data[k])) LocalDB.set(k, data[k]); });
+        KEYS.forEach(k=>{ if(Array.isArray(data[k])) localStorage.setItem(k, JSON.stringify(data[k])); });
       }
     }
   } catch(e){}
@@ -2113,21 +2111,13 @@ let autoSyncInterval = null;
 
 function startAutoSync(){
   if(autoSyncInterval) clearInterval(autoSyncInterval);
-  // Push local data to cloud immediately on start
-  cloudPush().catch(()=>{});
-  // Then sync every 30 seconds
+  // Push local data to cloud every 60 seconds — never pulls automatically
   autoSyncInterval = setInterval(async ()=>{
     if(!useCloud || !cloudBinId) return;
     try{
-      // Push first to save any local changes
       await cloudPush();
-      const b = document.getElementById('cloud-badge');
-      if(b){
-        b.innerHTML = '☁ Synced ✓';
-        setTimeout(()=>setBadge('online'), 1500);
-      }
-    } catch(e){}
-  }, 30000);
+    } catch(e){} // silent — never interrupt the user
+  }, 60000);
 }
 
 async function init(){
@@ -2151,7 +2141,7 @@ async function init(){
       const r = await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
       if(r.ok){
         const data = r.data?.record || {};
-        KEYS.forEach(k=>{ if(Array.isArray(data[k])) LocalDB.set(k, data[k]); });
+        KEYS.forEach(k=>{ if(Array.isArray(data[k])) localStorage.setItem(k, JSON.stringify(data[k])); });
       }
       useCloud = true;
       setBadge('online');
@@ -2965,4 +2955,4 @@ function printSection(name){
 }
 </script>
 </body>
-</html>
+</html> 

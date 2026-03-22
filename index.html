@@ -414,7 +414,7 @@ tbody tr:hover td{background:var(--bg);}
         <button id="notif-bell" onclick="toggleNotifPanel()" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;cursor:pointer;font-size:1rem;position:relative;transition:all .2s;" title="Alertes stock">
           🔔
         </button>
-        <span id="notif-count" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:50px;display:none;align-items:center;justify-content:center;padding:0 3px;font-family:var(--font-mono);">0</span>
+        <span id="notif-count" style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:50px;display:none;align-items:center;justify-content:center;padding:0 3px;font-family:var(--font-mono);">0</span>
       </div>
       <button id="mobile-logout-btn" onclick="logout()" style="display:none;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.25);border-radius:8px;padding:7px 12px;color:#f87171;font-family:var(--font-body);font-size:.78rem;font-weight:600;cursor:pointer;">⎋</button>
     </div>
@@ -879,7 +879,7 @@ tbody tr:hover td{background:var(--bg);}
 </div>
 
 <!-- MODAL: BARCODE SCANNER -->
-<div class="modal-overlay" id="modal-barcode">
+<div class="modal-overlay" id="modal-barcode" onclick="if(event.target===this) closeBarcode()">
   <div class="modal" style="max-width:420px;">
     <div class="modal-head">
       <h3>📷 Scanner un code-barres</h3>
@@ -1139,6 +1139,8 @@ function setAuthStatus(msg, type='error'){
 function skipCloud(){
   document.getElementById('cloud-screen').style.display = 'none';
   document.getElementById('logout-btn').style.display   = 'none';
+  // Save a local-only flag so we don't show login on reload
+  if(!getSavedAuth()) saveAuth({local:true, binId:null, jbkey:null});
   launchApp();
 }
 function setBadge(state){
@@ -1361,10 +1363,6 @@ function renderProducts(){
 function openModal(id){
   document.getElementById(id).classList.add('open');
   if(id==='modal-achat'||id==='modal-vente') populateProductSelects();
-  if(id==='modal-product'){
-    const dateEl = document.getElementById('p-date');
-    if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
-  }
 }
 function closeModal(id){
   document.getElementById(id).classList.remove('open');
@@ -1397,7 +1395,7 @@ function saveProduct(){
     prixAchat: Number(document.getElementById('p-prix-achat').value)||0,
     prixVente: Number(document.getElementById('p-prix-vente').value)||0,
     icon: document.getElementById('p-icon').value||'📦',
-    date: document.getElementById('p-date').value||new Date().toISOString().split('T')[0],
+    date: document.getElementById('p-date').value||'',
   };
   let products = getProducts();
   if(id){
@@ -2080,8 +2078,43 @@ function launchApp(){
   renderDashboard();
   updateBadges();
   document.querySelectorAll('.modal-overlay').forEach(o=>{
-    o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
+    o.addEventListener('click', e=>{
+      if(e.target===o){
+        if(o.id==='modal-barcode') closeBarcode();
+        else o.classList.remove('open');
+      }
+    });
   });
+
+  // Auto-sync every 30 seconds when cloud is active
+  if(useCloud && cloudBinId){
+    startAutoSync();
+  }
+}
+
+let autoSyncInterval = null;
+
+function startAutoSync(){
+  if(autoSyncInterval) clearInterval(autoSyncInterval);
+  autoSyncInterval = setInterval(async ()=>{
+    if(!useCloud || !cloudBinId) return;
+    try{
+      await cloudPull();
+      // Re-render current active page silently
+      const activePage = document.querySelector('.page.active');
+      if(activePage){
+        const name = activePage.id.replace('page-','');
+        renderPage(name);
+      }
+      updateBadges();
+      // Update sync badge briefly
+      const b = document.getElementById('cloud-badge');
+      if(b){ 
+        b.innerHTML = '☁ Synced'; 
+        setTimeout(()=>setBadge('online'), 1500);
+      }
+    } catch(e){}
+  }, 30000); // every 30 seconds
 }
 
 async function init(){
@@ -2097,6 +2130,7 @@ async function init(){
 
   const auth = getSavedAuth();
   if(auth && auth.binId){
+    // Has cloud config — try to connect
     cloudBinId = auth.binId;
     try{
       setBadge('loading');
@@ -2104,12 +2138,16 @@ async function init(){
       useCloud = true;
       setBadge('online');
       showToast('☁ Données synchronisées');
+      startAutoSync();
     } catch(e){
       setBadge('local');
-      showToast('Cloud indisponible — mode local','error');
     }
     launchApp();
+  } else if(auth && auth.local){
+    // Local only mode chosen — skip login
+    launchApp();
   } else {
+    // First time — show login screen
     showCloudScreen();
   }
 }
@@ -2683,36 +2721,35 @@ function setBarcodeStatus(msg, type='success'){
 // ── COMPARISON ────────────────────────────────────────────────────
 function setCmpPreset(preset){
   const now = new Date();
-  const fmt = d => d.toISOString().split('T')[0];
+  const fmtDate = d => d.toISOString().split('T')[0];
 
   if(preset === 'thisVsLast'){
-    // Period A = this month, Period B = last month
     const aStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const aEnd   = new Date(now.getFullYear(), now.getMonth()+1, 0);
     const bStart = new Date(now.getFullYear(), now.getMonth()-1, 1);
     const bEnd   = new Date(now.getFullYear(), now.getMonth(), 0);
-    document.getElementById('cmp-a-start').value = fmt(aStart);
-    document.getElementById('cmp-a-end').value   = fmt(aEnd);
-    document.getElementById('cmp-b-start').value = fmt(bStart);
-    document.getElementById('cmp-b-end').value   = fmt(bEnd);
+    document.getElementById('cmp-a-start').value = fmtDate(aStart);
+    document.getElementById('cmp-a-end').value   = fmtDate(aEnd);
+    document.getElementById('cmp-b-start').value = fmtDate(bStart);
+    document.getElementById('cmp-b-end').value   = fmtDate(bEnd);
   } else if(preset === 'last2months'){
     const aStart = new Date(now.getFullYear(), now.getMonth()-1, 1);
     const aEnd   = new Date(now.getFullYear(), now.getMonth(), 0);
     const bStart = new Date(now.getFullYear(), now.getMonth()-2, 1);
     const bEnd   = new Date(now.getFullYear(), now.getMonth()-1, 0);
-    document.getElementById('cmp-a-start').value = fmt(aStart);
-    document.getElementById('cmp-a-end').value   = fmt(aEnd);
-    document.getElementById('cmp-b-start').value = fmt(bStart);
-    document.getElementById('cmp-b-end').value   = fmt(bEnd);
+    document.getElementById('cmp-a-start').value = fmtDate(aStart);
+    document.getElementById('cmp-a-end').value   = fmtDate(aEnd);
+    document.getElementById('cmp-b-start').value = fmtDate(bStart);
+    document.getElementById('cmp-b-end').value   = fmtDate(bEnd);
   } else if(preset === 'last2weeks'){
     const aStart = new Date(now); aStart.setDate(now.getDate()-7);
     const aEnd   = new Date(now);
     const bStart = new Date(now); bStart.setDate(now.getDate()-14);
     const bEnd   = new Date(now); bEnd.setDate(now.getDate()-7);
-    document.getElementById('cmp-a-start').value = fmt(aStart);
-    document.getElementById('cmp-a-end').value   = fmt(aEnd);
-    document.getElementById('cmp-b-start').value = fmt(bStart);
-    document.getElementById('cmp-b-end').value   = fmt(bEnd);
+    document.getElementById('cmp-a-start').value = fmtDate(aStart);
+    document.getElementById('cmp-a-end').value   = fmtDate(aEnd);
+    document.getElementById('cmp-b-start').value = fmtDate(bStart);
+    document.getElementById('cmp-b-end').value   = fmtDate(bEnd);
   }
   renderComparison();
 }
@@ -2806,11 +2843,12 @@ function exportData(format){
 
     // Sheet 1 — Products
     const prodRows = products.map(p => ({
-      'Code':        p.code,
-      'Article':     p.article,
-      'Marque':      p.marque,
-      'Stock Initial': p.stock,
-      'Stock Actuel': getStockForProduct(p.id, p.stock),
+      'Date':            p.date||'',
+      'Code':            p.code,
+      'Article':         p.article,
+      'Marque':          p.marque,
+      'Stock Initial':   p.stock,
+      'Stock Actuel':    getStockForProduct(p.id, p.stock),
       "Prix d'Achat (DT)": p.prixAchat||0,
       'Prix de Vente (DT)': p.prixVente||0,
     }));
@@ -2861,6 +2899,9 @@ function importBackup(input){
       if(Array.isArray(data.products)) DB.set('products', data.products);
       if(Array.isArray(data.achats))   DB.set('achats',   data.achats);
       if(Array.isArray(data.ventes))   DB.set('ventes',   data.ventes);
+      if(Array.isArray(data.trash_products)) DB.set('trash_products', data.trash_products);
+      if(Array.isArray(data.trash_achats))   DB.set('trash_achats',   data.trash_achats);
+      if(Array.isArray(data.trash_ventes))   DB.set('trash_ventes',   data.trash_ventes);
       renderPage('stock');
       renderDashboard();
       updateBadges();

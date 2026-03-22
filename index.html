@@ -1113,9 +1113,17 @@ async function doLogin(){
       throw new Error('Erreur ('+r.status+')');
     }
     const data = r.data?.record || {};
-    KEYS.forEach(k=>{ if(Array.isArray(data[k])) localStorage.setItem(k, JSON.stringify(data[k])); });
+    KEYS.forEach(k=>{
+      const cloudData = Array.isArray(data[k]) ? data[k] : [];
+      const localData = JSON.parse(localStorage.getItem(k)||'[]');
+      if(cloudData.length > localData.length){
+        localStorage.setItem(k, JSON.stringify(cloudData));
+      }
+    });
     saveAuth({jbkey:key, binId, label:'Mon Magasin'});
     cloudBinId = binId; useCloud = true;
+    // Push local data to cloud immediately after login
+    setTimeout(()=>cloudPush().catch(()=>{}), 1000);
     setBadge('online');
     document.getElementById('cloud-screen').style.display = 'none';
     launchApp(); showToast('☁ Connecté ✓');
@@ -2140,15 +2148,28 @@ async function init(){
     cloudBinId = auth.binId;
     try{
       setBadge('loading');
-      // Force pull on load — get latest from cloud
+      // Pull from cloud — only overwrite local if cloud has MORE data
       const r = await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
       if(r.ok){
         const data = r.data?.record || {};
-        KEYS.forEach(k=>{ if(Array.isArray(data[k])) localStorage.setItem(k, JSON.stringify(data[k])); });
+        KEYS.forEach(k=>{
+          const cloudData  = Array.isArray(data[k]) ? data[k] : [];
+          const localData  = JSON.parse(localStorage.getItem(k)||'[]');
+          // Only take cloud data if it has MORE records than local
+          if(cloudData.length > localData.length){
+            localStorage.setItem(k, JSON.stringify(cloudData));
+          }
+          // If local has data and cloud is empty → push local to cloud
+          else if(localData.length > 0 && cloudData.length === 0){
+            // Will be pushed by cloudPush after launch
+          }
+        });
+        // Push local data to cloud to keep it updated
+        setTimeout(()=>cloudPush().catch(()=>{}), 2000);
       }
       useCloud = true;
       setBadge('online');
-      showToast('☁ Données synchronisées');
+      showToast('☁ Connecté');
       startAutoSync();
     } catch(e){
       setBadge('local');

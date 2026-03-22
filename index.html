@@ -1050,11 +1050,20 @@ async function cloudPush(){
   if(!cloudBinId) return;
   await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}`, 'PUT', getAllLocal());
 }
+
 async function cloudPull(){
   const r = await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
   if(!r.ok) throw new Error('Lecture échouée ('+r.status+')');
   const data = r.data?.record || {};
-  KEYS.forEach(k=>{ if(Array.isArray(data[k])) LocalDB.set(k, data[k]); });
+  // Only overwrite local if cloud has actual data (not empty)
+  KEYS.forEach(k=>{
+    if(Array.isArray(data[k]) && data[k].length > 0){
+      LocalDB.set(k, data[k]);
+    } else if(Array.isArray(data[k]) && data[k].length === 0 && LocalDB.get(k).length === 0){
+      LocalDB.set(k, []); // both empty, fine
+    }
+    // if cloud empty but local has data → keep local (don't overwrite)
+  });
 }
 
 // ── SIGNUP ────────────────────────────────────────────────────────
@@ -1617,9 +1626,17 @@ async function actualiserStock(){
   const btn = document.querySelector('[onclick="actualiserStock()"]');
   if(btn){ btn.textContent='↻ Chargement...'; btn.disabled=true; }
   try{
-    if(useCloud && cloudBinId) await cloudPull();
+    if(useCloud && cloudBinId){
+      // Force pull — override local with cloud regardless
+      const r = await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
+      if(r.ok){
+        const data = r.data?.record || {};
+        KEYS.forEach(k=>{ if(Array.isArray(data[k])) LocalDB.set(k, data[k]); });
+      }
+    }
   } catch(e){}
   renderStockReport();
+  renderDashboard();
   updateBadges();
   if(btn){ btn.textContent='↻ Actualiser'; btn.disabled=false; }
   showToast('Données actualisées ✓');
@@ -2096,25 +2113,21 @@ let autoSyncInterval = null;
 
 function startAutoSync(){
   if(autoSyncInterval) clearInterval(autoSyncInterval);
+  // Push local data to cloud immediately on start
+  cloudPush().catch(()=>{});
+  // Then sync every 30 seconds
   autoSyncInterval = setInterval(async ()=>{
     if(!useCloud || !cloudBinId) return;
     try{
-      await cloudPull();
-      // Re-render current active page silently
-      const activePage = document.querySelector('.page.active');
-      if(activePage){
-        const name = activePage.id.replace('page-','');
-        renderPage(name);
-      }
-      updateBadges();
-      // Update sync badge briefly
+      // Push first to save any local changes
+      await cloudPush();
       const b = document.getElementById('cloud-badge');
-      if(b){ 
-        b.innerHTML = '☁ Synced'; 
+      if(b){
+        b.innerHTML = '☁ Synced ✓';
         setTimeout(()=>setBadge('online'), 1500);
       }
     } catch(e){}
-  }, 30000); // every 30 seconds
+  }, 30000);
 }
 
 async function init(){
@@ -2134,7 +2147,12 @@ async function init(){
     cloudBinId = auth.binId;
     try{
       setBadge('loading');
-      await cloudPull();
+      // Force pull on load — get latest from cloud
+      const r = await jbReq(`https://api.jsonbin.io/v3/b/${cloudBinId}/latest`);
+      if(r.ok){
+        const data = r.data?.record || {};
+        KEYS.forEach(k=>{ if(Array.isArray(data[k])) LocalDB.set(k, data[k]); });
+      }
       useCloud = true;
       setBadge('online');
       showToast('☁ Données synchronisées');

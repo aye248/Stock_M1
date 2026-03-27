@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Mon Magasin — Dashboard</title>
+<title>Mon Magasin — Store Management Dashboard</title>
+<meta name="description" content="Free store management system — track products, sales, purchases, stock and financial reports. Works on mobile and desktop."/>
+<meta name="keywords" content="store management, inventory, dashboard, stock tracker, sales, purchases"/>
+<meta name="author" content="Mon Magasin"/>
+<!-- Open Graph (preview when shared on LinkedIn, WhatsApp...) -->
+<meta property="og:title" content="Mon Magasin — Store Management Dashboard"/>
+<meta property="og:description" content="Free store management system — products, sales, stock, reports & cloud sync."/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://YOUR-USERNAME.github.io/magasin/dashboard.html"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -2124,7 +2132,7 @@ init();
 </script>
 <!-- MODAL: IMPORT RESULT -->
 <div class="modal-overlay" id="modal-import">
-  <div class="modal" style="max-width:460px;">
+  <div class="modal" style="max-width:520px;">
     <div class="modal-head">
       <h3>📂 Import Excel</h3>
       <button class="modal-close" onclick="closeModal('modal-import')">✕</button>
@@ -2141,6 +2149,35 @@ init();
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeModal('modal-import')">Annuler</button>
         <button class="btn btn-primary" id="import-confirm-btn" style="display:none;" onclick="confirmImport()">✓ Confirmer l'import</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SKIP REPORT -->
+<div class="modal-overlay" id="modal-skip-report">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-head">
+      <h3>⚠ Lignes ignorées — Rapport détaillé</h3>
+      <button class="modal-close" onclick="closeModal('modal-skip-report')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="skip-report-summary" style="margin-bottom:16px;padding:12px 16px;background:var(--bg2);border-radius:10px;font-size:.85rem;"></div>
+      <div style="max-height:380px;overflow-y:auto;">
+        <table style="min-width:100%;">
+          <thead>
+            <tr>
+              <th>Ligne #</th>
+              <th>Code trouvé</th>
+              <th>Qté</th>
+              <th>Raison ignorée</th>
+            </tr>
+          </thead>
+          <tbody id="skip-report-table"></tbody>
+        </table>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="closeModal('modal-skip-report')">Compris ✓</button>
       </div>
     </div>
   </div>
@@ -2285,19 +2322,59 @@ function importFromExcel(file){
 function confirmImport(){
   const overwrite = document.getElementById('import-overwrite').checked;
   let products = getProducts();
-  let added=0, updated=0, skipped=0;
-  importedRows.forEach(r=>{
+  let added=0, updated=0;
+  const skippedRows = [];
+
+  importedRows.forEach((r, i)=>{
     const idx = products.findIndex(p=>p.code.toLowerCase()===r.code.toLowerCase());
     if(idx>=0){
-      if(overwrite){ products[idx]={...products[idx],...r,id:products[idx].id}; updated++; }
-      else skipped++;
-    } else { products.push(r); added++; }
+      if(overwrite){
+        products[idx]={...products[idx],...r,id:products[idx].id};
+        updated++;
+      } else {
+        skippedRows.push({line:i+1, code:r.code, qty:'—', reason:`Code "${r.code}" existe déjà — décochez "Écraser" pour ignorer`});
+      }
+    } else {
+      products.push(r);
+      added++;
+    }
   });
+
   DB.set('products', products);
   closeModal('modal-import');
   importedRows=[];
   renderProducts(); updateBadges();
-  showToast(`Import OK — ${added} ajouté(s)${updated?' · '+updated+' mis à jour':''}${skipped?' · '+skipped+' ignoré(s)':''}`);
+
+  if(skippedRows.length > 0){
+    setTimeout(()=>showSkipReport(skippedRows, added+updated, 'Produits'), 300);
+  } else {
+    showToast(`Import OK — ${added} ajouté(s)${updated?' · '+updated+' mis à jour':''} ✓`);
+  }
+}
+
+function showSkipReport(skippedRows, added, type){
+  const summary = document.getElementById('skip-report-summary');
+  const tbody   = document.getElementById('skip-report-table');
+  if(!summary || !tbody) return;
+
+  summary.innerHTML = `
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+      <div>✅ <strong>${added}</strong> ligne(s) importée(s)</div>
+      <div style="color:var(--red);">⚠ <strong>${skippedRows.length}</strong> ligne(s) ignorée(s)</div>
+    </div>
+    <div style="margin-top:6px;font-size:.8rem;color:var(--muted);">Type : ${type} — Corrigez les erreurs et réimportez si nécessaire.</div>
+  `;
+
+  tbody.innerHTML = skippedRows.map(r=>`
+    <tr>
+      <td><span class="code">Ligne ${r.line}</span></td>
+      <td><span class="code">${r.code}</span></td>
+      <td>${r.qty}</td>
+      <td style="color:var(--red);font-size:.82rem;">${r.reason}</td>
+    </tr>
+  `).join('');
+
+  openModal('modal-skip-report');
 }
 
 // ── IMPORT ACHATS FROM EXCEL ────────────────────────────────────────
@@ -2340,17 +2417,33 @@ function importAchatsFromExcel(file){
       };
 
       const products = getProducts();
-      let added=0, skipped=0;
+      let added=0;
+      const skippedRows = [];
       const newAchats = [...getAchats()];
 
-      raw.forEach(r=>{
+      raw.forEach((r, i)=>{
         const code = colCode ? String(r[colCode]||'').trim() : '';
         const qty  = parseNum(r[colQty]);
         const prix = parseNum(r[colPrix]);
-        if(!code||!qty){ skipped++; return; }
+
+        if(!code && !qty){
+          skippedRows.push({line:i+2, code:'—', qty:'—', reason:'Ligne vide'});
+          return;
+        }
+        if(!code){
+          skippedRows.push({line:i+2, code:'—', qty, reason:'Code article manquant'});
+          return;
+        }
+        if(!qty){
+          skippedRows.push({line:i+2, code, qty:'0', reason:'Quantité = 0 ou manquante'});
+          return;
+        }
 
         const prod = products.find(p=>p.code.toLowerCase()===code.toLowerCase());
-        if(!prod){ skipped++; return; }
+        if(!prod){
+          skippedRows.push({line:i+2, code, qty, reason:`Code "${code}" introuvable dans vos produits`});
+          return;
+        }
 
         const dateRaw = r[colDate];
         let date = '';
@@ -2374,7 +2467,12 @@ function importAchatsFromExcel(file){
 
       DB.set('achats', newAchats);
       renderAchats(); updateBadges();
-      showToast(`Import Achats OK — ${added} ajouté(s)${skipped?' · '+skipped+' ignoré(s)':''}`);
+
+      if(skippedRows.length > 0){
+        showSkipReport(skippedRows, added, 'Achats');
+      } else {
+        showToast(`Import Achats OK — ${added} ajouté(s) ✓`);
+      }
     } catch(err){ showToast('Erreur: '+err.message,'error'); }
   };
   reader.readAsBinaryString(file);
@@ -2420,17 +2518,33 @@ function importVentesFromExcel(file){
       };
 
       const products = getProducts();
-      let added=0, skipped=0;
+      let added=0;
+      const skippedRows = [];
       const newVentes = [...getVentes()];
 
-      raw.forEach(r=>{
+      raw.forEach((r, i)=>{
         const code = colCode ? String(r[colCode]||'').trim() : '';
         const qty  = parseNum(r[colQty]);
         const prix = parseNum(r[colPrix]);
-        if(!code||!qty){ skipped++; return; }
+
+        if(!code && !qty){
+          skippedRows.push({line:i+2, code:'—', qty:'—', reason:'Ligne vide'});
+          return;
+        }
+        if(!code){
+          skippedRows.push({line:i+2, code:'—', qty, reason:'Code article manquant'});
+          return;
+        }
+        if(!qty){
+          skippedRows.push({line:i+2, code, qty:'0', reason:'Quantité = 0 ou manquante'});
+          return;
+        }
 
         const prod = products.find(p=>p.code.toLowerCase()===code.toLowerCase());
-        if(!prod){ skipped++; return; }
+        if(!prod){
+          skippedRows.push({line:i+2, code, qty, reason:`Code "${code}" introuvable dans vos produits`});
+          return;
+        }
 
         const dateRaw = r[colDate];
         let date = '';
@@ -2454,7 +2568,12 @@ function importVentesFromExcel(file){
 
       DB.set('ventes', newVentes);
       renderVentes(); updateBadges();
-      showToast(`Import Ventes OK — ${added} ajouté(s)${skipped?' · '+skipped+' ignoré(s)':''}`);
+
+      if(skippedRows.length > 0){
+        showSkipReport(skippedRows, added, 'Ventes');
+      } else {
+        showToast(`Import Ventes OK — ${added} ajouté(s) ✓`);
+      }
     } catch(err){ showToast('Erreur: '+err.message,'error'); }
   };
   reader.readAsBinaryString(file);

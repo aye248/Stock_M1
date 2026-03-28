@@ -1661,7 +1661,7 @@ function renderFinancialReport(){
   const dateEnd   = endEl.value;
 
   const inRange = (date) => {
-    if(!date) return true; // no date on record → include in global
+    if(!date) return true;
     if(dateStart && date < dateStart) return false;
     if(dateEnd   && date > dateEnd)   return false;
     return true;
@@ -1669,10 +1669,24 @@ function renderFinancialReport(){
 
   const filteredAchats = getAchats().filter(a => inRange(a.date));
   const filteredVentes = getVentes().filter(v => inRange(v.date));
+  const products = getProducts();
 
   const totalAchats = filteredAchats.reduce((s,a)=>s+Number(a.total),0);
   const totalVentes = filteredVentes.reduce((s,v)=>s+Number(v.total),0);
-  const profit = totalVentes - totalAchats;
+
+  // CAMV = Coût d'Achat des Marchandises Vendues
+  // = for each vente → product.prixAchat × qty
+  const camv = filteredVentes.reduce((s,v)=>{
+    const prod = products.find(p=>p.id===v.productId);
+    const prixAchat = prod ? Number(prod.prixAchat)||0 : 0;
+    return s + prixAchat * Number(v.qty);
+  }, 0);
+
+  // Bénéfice Brut = Total Ventes - CAMV
+  const profit = totalVentes - camv;
+
+  // Marge % = Bénéfice Brut / Total Ventes × 100
+  const marge = totalVentes > 0 ? ((profit / totalVentes) * 100).toFixed(1) : null;
 
   // Period label
   const lbl = document.getElementById('fin-period-label');
@@ -1697,15 +1711,19 @@ function renderFinancialReport(){
       <span>Total Ventes <span style="font-size:.72rem;color:var(--muted);font-family:var(--font-mono);">(${nVentes} op.)</span></span>
       <span class="report-item-val profit-positive">${fmt(totalVentes)} DT</span>
     </div>
+    <div class="report-item">
+      <span>Coût marchandises vendues <span style="font-size:.72rem;color:var(--muted);font-family:var(--font-mono);">(CAMV)</span></span>
+      <span class="report-item-val profit-negative">${fmt(camv)} DT</span>
+    </div>
     <div class="report-item" style="font-weight:700;border-top:2px solid var(--border);margin-top:4px;padding-top:14px;">
-      <span>Bénéfice Brut</span>
+      <span>Bénéfice Brut <span style="font-size:.7rem;font-weight:400;color:var(--muted);">Ventes − CAMV</span></span>
       <span class="report-item-val ${profit>=0?'profit-positive':'profit-negative'}" style="font-size:1.1rem;">
         ${profit>=0?'+':''}${fmt(profit)} DT
       </span>
     </div>
     ${profit>=0
       ? `<div style="margin-top:10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:.8rem;color:#166534;">
-           ✓ Marge : ${totalAchats>0?((profit/totalAchats)*100).toFixed(1):'—'}%
+           ✓ Marge brute : ${marge!==null?marge+'%':'—'} <span style="opacity:.7;font-size:.75rem;">(sur ventes)</span>
          </div>`
       : `<div style="margin-top:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;font-size:.8rem;color:#991b1b;">
            ⚠ Perte sur la période
@@ -2912,17 +2930,31 @@ function renderComparison(){
     return;
   }
 
-  const ventes = getVentes();
-  const achats = getAchats();
+  const ventes  = getVentes();
+  const achats  = getAchats();
+  const products = getProducts();
 
-  const aVentes = calcPeriod(ventes, aStart, aEnd);
-  const bVentes = calcPeriod(ventes, bStart, bEnd);
+  const filterV = (s,e) => ventes.filter(v=>v.date&&v.date>=s&&v.date<=e);
+  const aVentesArr = filterV(aStart,aEnd);
+  const bVentesArr = filterV(bStart,bEnd);
+
+  const aVentes = aVentesArr.reduce((s,v)=>s+Number(v.total),0);
+  const bVentes = bVentesArr.reduce((s,v)=>s+Number(v.total),0);
   const aAchats = calcPeriod(achats, aStart, aEnd);
   const bAchats = calcPeriod(achats, bStart, bEnd);
-  const aBenef  = aVentes - aAchats;
-  const bBenef  = bVentes - bAchats;
-  const aVQty   = ventes.filter(v=>v.date>=aStart&&v.date<=aEnd).reduce((s,v)=>s+Number(v.qty),0);
-  const bVQty   = ventes.filter(v=>v.date>=bStart&&v.date<=bEnd).reduce((s,v)=>s+Number(v.qty),0);
+
+  // CAMV = prix achat produit × qty vendue
+  const calcCamv = (arr) => arr.reduce((s,v)=>{
+    const prod = products.find(p=>p.id===v.productId);
+    return s + (prod?Number(prod.prixAchat)||0:0) * Number(v.qty);
+  },0);
+
+  const aCamv  = calcCamv(aVentesArr);
+  const bCamv  = calcCamv(bVentesArr);
+  const aBenef = aVentes - aCamv;
+  const bBenef = bVentes - bCamv;
+  const aVQty  = aVentesArr.reduce((s,v)=>s+Number(v.qty),0);
+  const bVQty  = bVentesArr.reduce((s,v)=>s+Number(v.qty),0);
 
   const diff = (a, b) => {
     if(b===0) return a>0 ? {pct:'nouveau',cls:'profit-positive',arrow:'↑'} : {pct:'—',cls:'',arrow:''};
@@ -2955,8 +2987,9 @@ function renderComparison(){
       <div style="display:flex;align-items:center;gap:6px;font-size:.78rem;"><div style="width:10px;height:10px;border-radius:50%;background:#1D4ED8;"></div><span style="color:var(--muted);">Période B : ${labelB}</span></div>
     </div>
     ${row('Ventes (CA)', aVentes, bVentes)}
-    ${row('Achats (coût)', aAchats, bAchats)}
-    ${row('Bénéfice brut', aBenef, bBenef)}
+    ${row('Achats (total)', aAchats, bAchats)}
+    ${row('CAMV (coût marchandises vendues)', aCamv, bCamv)}
+    ${row('Bénéfice brut (Ventes − CAMV)', aBenef, bBenef)}
     ${row('Unités vendues', aVQty, bVQty, false)}
   `;
 }

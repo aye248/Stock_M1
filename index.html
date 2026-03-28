@@ -2239,26 +2239,26 @@ function importFromExcel(file){
 
       importedRows = raw
         .filter(r => {
-          const c = colCode   ? String(r[colCode]||'').trim()   : '';
-          const a = colArticle? String(r[colArticle]||'').trim(): '';
-          return c || a;
+          const c = colCode ? String(r[colCode]||'').trim() : '';
+          return c !== ''; // only skip if code is empty
         })
         .map(r => {
           const code    = colCode    ? String(r[colCode]||'').trim()    : '';
-          const article = colArticle ? String(r[colArticle]||'').trim() : '';
+          const article = colArticle ? String(r[colArticle]||'').trim() : code;
+          const stockVal = colStock ? parseNum(r[colStock]) : 0;
           return {
             id:        uid(),
-            code:      code || article, // fallback: use article as code if no code col
-            article:   article || code, // fallback: use code as article if no article col
+            code,
+            article:   article || code,
             marque:    colMarque  ? String(r[colMarque]||'').trim()  : '',
-            stock:     colStock   ? parseNum(r[colStock])            : 0,
+            stock:     stockVal,
             prixAchat: colAchat   ? parseNum(r[colAchat])            : 0,
             prixVente: colVente   ? parseNum(r[colVente])            : 0,
             date:      colDate    ? String(r[colDate]||'').trim()    : '',
             icon: '📦',
           };
         })
-        .filter(r => r.code && r.article);
+        .filter(r => r.code); // only skip if code is truly empty
 
       if(!importedRows.length){ showToast('Aucun produit valide trouvé','error'); return; }
 
@@ -2325,14 +2325,28 @@ function confirmImport(){
   let added=0, updated=0;
   const skippedRows = [];
 
+  // Also track truly empty rows from original raw data
   importedRows.forEach((r, i)=>{
+    if(!r.code){
+      skippedRows.push({line:i+1, code:'—', qty:'—', reason:'Code article vide — ligne ignorée'});
+      return;
+    }
+    // Reference = code only (not article name)
     const idx = products.findIndex(p=>p.code.toLowerCase()===r.code.toLowerCase());
     if(idx>=0){
       if(overwrite){
-        products[idx]={...products[idx],...r,id:products[idx].id};
+        // Keep existing id and stock if new stock is 0
+        const existingStock = products[idx].stock;
+        products[idx] = {
+          ...products[idx],
+          ...r,
+          id: products[idx].id,
+          stock: r.stock > 0 ? r.stock : existingStock, // keep existing stock if import has 0
+        };
         updated++;
       } else {
-        skippedRows.push({line:i+1, code:r.code, qty:'—', reason:`Code "${r.code}" existe déjà — décochez "Écraser" pour ignorer`});
+        // Skip but don't report — user chose not to overwrite
+        updated=updated; // silent skip
       }
     } else {
       products.push(r);
@@ -2420,29 +2434,29 @@ function importAchatsFromExcel(file){
       let added=0;
       const skippedRows = [];
       const newAchats = [...getAchats()];
+      const newProducts = [...products]; // may grow if new codes found
 
       raw.forEach((r, i)=>{
         const code = colCode ? String(r[colCode]||'').trim() : '';
         const qty  = parseNum(r[colQty]);
         const prix = parseNum(r[colPrix]);
 
+        // Only 2 skip reasons
         if(!code && !qty){
           skippedRows.push({line:i+2, code:'—', qty:'—', reason:'Ligne vide'});
           return;
         }
         if(!code){
-          skippedRows.push({line:i+2, code:'—', qty, reason:'Code article manquant'});
-          return;
-        }
-        if(!qty){
-          skippedRows.push({line:i+2, code, qty:'0', reason:'Quantité = 0 ou manquante'});
+          skippedRows.push({line:i+2, code:'—', qty, reason:'Code article vide'});
           return;
         }
 
-        const prod = products.find(p=>p.code.toLowerCase()===code.toLowerCase());
+        // Find or auto-create product
+        let prod = newProducts.find(p=>p.code.toLowerCase()===code.toLowerCase());
         if(!prod){
-          skippedRows.push({line:i+2, code, qty, reason:`Code "${code}" introuvable dans vos produits`});
-          return;
+          // Auto-create new product with this code
+          prod = {id:uid(), code, article:code, marque:'', stock:0, prixAchat:prix, prixVente:0, icon:'📦', date:''};
+          newProducts.push(prod);
         }
 
         const dateRaw = r[colDate];
@@ -2465,8 +2479,9 @@ function importAchatsFromExcel(file){
         added++;
       });
 
+      DB.set('products', newProducts); // save any new products
       DB.set('achats', newAchats);
-      renderAchats(); updateBadges();
+      renderAchats(); renderProducts(); updateBadges();
 
       if(skippedRows.length > 0){
         showSkipReport(skippedRows, added, 'Achats');
@@ -2521,29 +2536,28 @@ function importVentesFromExcel(file){
       let added=0;
       const skippedRows = [];
       const newVentes = [...getVentes()];
+      const newProducts = [...products];
 
       raw.forEach((r, i)=>{
         const code = colCode ? String(r[colCode]||'').trim() : '';
         const qty  = parseNum(r[colQty]);
         const prix = parseNum(r[colPrix]);
 
+        // Only 2 skip reasons
         if(!code && !qty){
           skippedRows.push({line:i+2, code:'—', qty:'—', reason:'Ligne vide'});
           return;
         }
         if(!code){
-          skippedRows.push({line:i+2, code:'—', qty, reason:'Code article manquant'});
-          return;
-        }
-        if(!qty){
-          skippedRows.push({line:i+2, code, qty:'0', reason:'Quantité = 0 ou manquante'});
+          skippedRows.push({line:i+2, code:'—', qty, reason:'Code article vide'});
           return;
         }
 
-        const prod = products.find(p=>p.code.toLowerCase()===code.toLowerCase());
+        // Find or auto-create product
+        let prod = newProducts.find(p=>p.code.toLowerCase()===code.toLowerCase());
         if(!prod){
-          skippedRows.push({line:i+2, code, qty, reason:`Code "${code}" introuvable dans vos produits`});
-          return;
+          prod = {id:uid(), code, article:code, marque:'', stock:0, prixAchat:0, prixVente:prix, icon:'📦', date:''};
+          newProducts.push(prod);
         }
 
         const dateRaw = r[colDate];
@@ -2566,8 +2580,9 @@ function importVentesFromExcel(file){
         added++;
       });
 
+      DB.set('products', newProducts);
       DB.set('ventes', newVentes);
-      renderVentes(); updateBadges();
+      renderVentes(); renderProducts(); updateBadges();
 
       if(skippedRows.length > 0){
         showSkipReport(skippedRows, added, 'Ventes');

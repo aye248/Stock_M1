@@ -325,7 +325,10 @@ tbody tr:hover td{background:var(--bg);}
   </nav>
   <div class="sidebar-footer">
     <button onclick="showCloudScreen()" class="sidebar-footer-btn cloud">
-      ☁ Configurer Cloud
+      ☁ Se connecter
+    </button>
+    <button onclick="showSbConfig()" class="sidebar-footer-btn cloud" style="font-size:.75rem;opacity:.7;">
+      ⚙ Config Supabase
     </button>
     <button onclick="logout()" id="logout-btn" class="sidebar-footer-btn logout" style="display:none;">
       ⎋ Se déconnecter
@@ -406,58 +409,51 @@ tbody tr:hover td{background:var(--bg);}
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
 
-      <!-- SUPABASE LOGIN PAGE — shown when not connected -->
+      <!-- LOGIN PAGE — Email + Password -->
       <div id="supabase-config-card" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;">
-        <div style="width:100%;max-width:420px;padding:24px;">
+        <div style="width:100%;max-width:400px;padding:24px;">
 
           <!-- Logo -->
-          <div style="text-align:center;margin-bottom:36px;">
-            <div style="font-size:2.5rem;margin-bottom:8px;">◈</div>
-            <div style="font-family:var(--font-head);font-size:1.6rem;font-weight:800;color:var(--text);">Mon Magasin</div>
-            <div style="font-size:.85rem;color:var(--muted);margin-top:4px;">Connectez votre espace cloud pour commencer</div>
+          <div style="text-align:center;margin-bottom:32px;">
+            <div style="width:56px;height:56px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 12px;">◈</div>
+            <div style="font-family:var(--font-head);font-size:1.5rem;font-weight:800;color:var(--text);">Mon Magasin</div>
+            <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">Connectez-vous pour accéder à vos données</div>
           </div>
 
           <!-- Card -->
-          <div style="background:var(--white);border:1px solid var(--border);border-radius:20px;padding:32px;box-shadow:0 8px 40px rgba(0,0,0,.08);">
-            <div style="font-family:var(--font-head);font-weight:700;font-size:1rem;margin-bottom:20px;color:var(--text);">☁ Connexion Supabase</div>
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:20px;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,.08);">
 
             <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px;">
               <div>
-                <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:6px;">Project URL</label>
-                <input id="sb-url" type="text" placeholder="https://xxxx.supabase.co"
-                  style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:var(--font-mono);font-size:.82rem;color:var(--text);outline:none;transition:border .2s;box-sizing:border-box;"
+                <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:6px;">Email</label>
+                <input id="login-email" type="email" placeholder="exemple@email.com"
+                  style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:var(--font-body);font-size:.9rem;color:var(--text);outline:none;transition:border .2s;box-sizing:border-box;"
                   onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
               </div>
               <div>
-                <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:6px;">Anon Public Key</label>
+                <label style="font-size:.72rem;font-weight:700;color:var(--muted);font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:6px;">Mot de passe</label>
                 <div style="position:relative;">
-                  <input id="sb-key" type="password" placeholder="eyJhbGci..."
-                    style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:12px 40px 12px 14px;font-family:var(--font-mono);font-size:.82rem;color:var(--text);outline:none;transition:border .2s;box-sizing:border-box;"
+                  <input id="login-password" type="password" placeholder="••••••••"
+                    style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:12px 40px 12px 14px;font-family:var(--font-body);font-size:.9rem;color:var(--text);outline:none;transition:border .2s;box-sizing:border-box;"
                     onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
-                    onkeydown="if(event.key==='Enter') connectSupabase()"/>
-                  <button type="button" onclick="const i=document.getElementById('sb-key');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'"
+                    onkeydown="if(event.key==='Enter') doLogin()"/>
+                  <button type="button" onclick="const i=document.getElementById('login-password');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'"
                     style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.9rem;padding:4px;">👁</button>
                 </div>
               </div>
             </div>
 
-            <button id="sb-connect-btn" onclick="connectSupabase()"
-              style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px;font-family:var(--font-body);font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s;margin-bottom:10px;">
-              ☁ Se connecter
+            <button id="login-btn" onclick="doLogin()"
+              style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:13px;font-family:var(--font-body);font-size:.92rem;font-weight:700;cursor:pointer;transition:opacity .2s;margin-bottom:10px;">
+              Se connecter
             </button>
 
             <button onclick="skipCloud()"
-              style="width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:12px;padding:12px;font-family:var(--font-body);font-size:.85rem;font-weight:600;cursor:pointer;">
+              style="width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:12px;padding:11px;font-family:var(--font-body);font-size:.83rem;font-weight:600;cursor:pointer;">
               Continuer en mode local
             </button>
 
             <div id="sb-status" style="display:none;margin-top:14px;border-radius:10px;padding:10px 14px;font-size:.83rem;line-height:1.6;"></div>
-          </div>
-
-          <!-- Help -->
-          <div style="text-align:center;margin-top:16px;font-size:.78rem;color:var(--muted);line-height:1.8;">
-            Pas de compte ? <a href="https://supabase.com" target="_blank" style="color:var(--accent);font-weight:600;">supabase.com</a> → gratuit<br/>
-            <span style="font-size:.72rem;">Settings → API → copiez Project URL + anon key</span>
           </div>
         </div>
       </div>
@@ -927,8 +923,12 @@ tbody tr:hover td{background:var(--bg);}
 
 <script>
 // ── SUPABASE CLOUD ────────────────────────────────────────────────
-const CLOUD_KEY = 'sb_config';
-let useCloud = false, sbUrl = '', sbKey = '', cloudBinId = 'store';
+const CLOUD_KEY = 'sb_session';
+let SB_URL = '';
+let SB_ANON_KEY = '';
+let useCloud = false;
+let sbAccessToken = '';
+let sbRefreshToken = '';
 
 const KEYS = ['products','achats','ventes','trash_products','trash_achats','trash_ventes'];
 
@@ -945,46 +945,53 @@ function getProducts(){ return DB.get('products'); }
 function getAchats()  { return DB.get('achats'); }
 function getVentes()  { return DB.get('ventes'); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function getSavedAuth(){ try{return JSON.parse(localStorage.getItem(CLOUD_KEY)||'null');}catch(e){return null;} }
-function saveAuth(o){ localStorage.setItem(CLOUD_KEY,JSON.stringify(o)); }
+function getSavedSession(){ try{return JSON.parse(localStorage.getItem(CLOUD_KEY)||'null');}catch(e){return null;} }
+function saveSession(o){ localStorage.setItem(CLOUD_KEY, JSON.stringify(o)); }
+function clearSession(){ localStorage.removeItem(CLOUD_KEY); }
 function getAllLocal(){ const o={}; KEYS.forEach(k=>o[k]=DB.get(k)); return o; }
+function getSavedAuth(){ return getSavedSession(); }
 
-// ── SUPABASE API ──────────────────────────────────────────────────
-// We use a single row in a 'store' table with all data as JSON
+// ── SUPABASE AUTH ─────────────────────────────────────────────────
+async function sbAuthReq(path, body){
+  const r = await fetch(SB_URL+'/auth/v1/'+path, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SB_ANON_KEY},
+    body: JSON.stringify(body)
+  });
+  const data = await r.json();
+  if(!r.ok) throw new Error(data.error_description || data.msg || data.message || 'Erreur auth');
+  return data;
+}
+
+// ── SUPABASE DATA ─────────────────────────────────────────────────
 async function sbReq(path, method='GET', body=null){
   const h = {
-    'Content-Type': 'application/json',
-    'apikey': sbKey,
-    'Authorization': 'Bearer '+sbKey,
-    'Prefer': method==='POST' ? 'resolution=merge-duplicates,return=minimal' : 'return=minimal'
+    'Content-Type':'application/json',
+    'apikey': SB_ANON_KEY,
+    'Authorization': 'Bearer '+sbAccessToken,
+    'Prefer': method==='POST'?'resolution=merge-duplicates,return=minimal':'return=minimal'
   };
   const opts = {method, headers:h};
   if(body) opts.body = JSON.stringify(body);
-  const r = await fetch(sbUrl+'/rest/v1/'+path, opts);
-  if(method==='GET' && r.ok){
-    const t = await r.text();
-    try{ return JSON.parse(t); }catch(e){ return []; }
-  }
+  const r = await fetch(SB_URL+'/rest/v1/'+path, opts);
+  if(method==='GET' && r.ok){ try{ return await r.json(); }catch(e){ return []; } }
   return {ok:r.ok, status:r.status};
 }
 
-// Push one key to Supabase
 async function sbPush(key, value){
-  if(!useCloud) return;
-  await sbReq('store?on_conflict=key', 'POST', {key, value: JSON.stringify(value)});
+  if(!useCloud || !sbAccessToken) return;
+  await sbReq('store?on_conflict=key','POST',{key, value: JSON.stringify(value)});
 }
 
-// Push all local data to Supabase
 async function sbPushAll(){
-  if(!useCloud) return;
+  if(!useCloud || !sbAccessToken) return;
   const rows = KEYS.map(k=>({key:k, value: JSON.stringify(DB.get(k))}));
-  await sbReq('store?on_conflict=key', 'POST', rows);
+  await sbReq('store?on_conflict=key','POST', rows);
 }
 
-// Pull all data from Supabase
 async function sbPull(){
   const rows = await sbReq('store?select=key,value');
-  if(!Array.isArray(rows)) throw new Error('Pull failed');
+  if(!Array.isArray(rows)) return;
   rows.forEach(row=>{
     try{
       const parsed = JSON.parse(row.value);
@@ -995,34 +1002,26 @@ async function sbPull(){
   });
 }
 
-// Create the store table if it doesn't exist via RPC — or check connection
-async function sbInit(){
-  // Test connection by fetching store table
-  const r = await fetch(sbUrl+'/rest/v1/store?select=key&limit=1', {
-    headers:{'apikey':sbKey,'Authorization':'Bearer '+sbKey}
-  });
-  if(r.status === 404 || r.status === 400){
-    throw new Error('Table "store" introuvable. Voir instructions ci-dessous.');
-  }
-  if(r.status === 401 || r.status === 403){
-    throw new Error('Clé API incorrecte.');
-  }
-  if(!r.ok) throw new Error('Connexion échouée ('+r.status+')');
-  return true;
+async function sbRefreshSession(){
+  if(!sbRefreshToken || !SB_URL) return false;
+  try{
+    const data = await sbAuthReq('token?grant_type=refresh_token', {refresh_token: sbRefreshToken});
+    sbAccessToken  = data.access_token;
+    sbRefreshToken = data.refresh_token;
+    const s = getSavedSession();
+    saveSession({...s, access_token:sbAccessToken, refresh_token:sbRefreshToken});
+    return true;
+  } catch(e){ return false; }
 }
 
-// ── CONNECT ───────────────────────────────────────────────────────
-async function connectSupabase(){
-  const urlEl = document.getElementById('sb-url');
-  const keyEl = document.getElementById('sb-key');
+// ── LOGIN ─────────────────────────────────────────────────────────
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-password').value;
+  const btn   = document.getElementById('login-btn');
   const statusEl = document.getElementById('sb-status');
-  const btn = document.getElementById('sb-connect-btn');
-
-  const url = urlEl ? urlEl.value.trim().replace(/\/$/,'') : '';
-  const key = keyEl ? keyEl.value.trim() : '';
 
   const showStatus = (msg, type) => {
-    if(!statusEl) return;
     const colors = {
       error:  'background:#fee2e2;border:1px solid #fecaca;color:#991b1b;',
       loading:'background:#fefce8;border:1px solid #fde68a;color:#854d0e;',
@@ -1032,130 +1031,119 @@ async function connectSupabase(){
     statusEl.innerHTML = msg;
   };
 
-  if(!url){ showStatus('⚠ Entrez le Project URL.','error'); return; }
-  if(!key){ showStatus('⚠ Entrez l\'Anon Public Key.','error'); return; }
+  if(!email){ showStatus('⚠ Entrez votre email.','error'); return; }
+  if(!pass)  { showStatus('⚠ Entrez votre mot de passe.','error'); return; }
 
-  if(btn){ btn.disabled=true; btn.textContent='↻ Connexion...'; btn.style.opacity='.65'; }
-  showStatus('⏳ Connexion à Supabase...','loading');
+  const cfg = getSavedSession();
+  if(!cfg?.url || !cfg?.key){
+    showStatus('⚠ Configuration manquante. Cliquez sur "⚙ Config" dans la sidebar.','error');
+    return;
+  }
+  SB_URL = cfg.url; SB_ANON_KEY = cfg.key;
 
-  sbUrl = url;
-  sbKey = key;
+  btn.disabled=true; btn.textContent='↻ Connexion...'; btn.style.opacity='.65';
+  showStatus('⏳ Connexion en cours...','loading');
 
   try{
-    // Test connection
-    const testR = await fetch(sbUrl+'/rest/v1/store?select=key&limit=1', {
-      headers:{'apikey':sbKey,'Authorization':'Bearer '+sbKey}
-    });
+    const data = await sbAuthReq('token?grant_type=password', {email, password:pass});
+    sbAccessToken  = data.access_token;
+    sbRefreshToken = data.refresh_token;
 
-    if(testR.status===401||testR.status===403){
-      throw new Error('Clé API incorrecte — vérifiez l\'Anon Public Key.');
-    }
-    if(testR.status===404||testR.status===400){
-      throw new Error('TABLE_MISSING');
-    }
-    if(!testR.ok){
-      throw new Error('Erreur de connexion ('+testR.status+') — vérifiez le Project URL.');
-    }
-
-    showStatus('⏳ Synchronisation...','loading');
-
-    // Pull from cloud first
+    showStatus('⏳ Chargement des données...','loading');
     await sbPull();
-
-    // Push local data up
     await sbPushAll();
 
-    // Save credentials
-    saveAuth({url, key});
+    saveSession({url:SB_URL, key:SB_ANON_KEY, access_token:sbAccessToken, refresh_token:sbRefreshToken, email});
     useCloud = true;
-    setBadge('online');
-
-    showStatus('✓ Connecté avec succès !','success');
+    setBadge('online', email);
+    showStatus('✓ Connecté !','success');
 
     const card = document.getElementById('supabase-config-card');
-    if(card) card.style.display = 'none';
+    if(card) card.style.display='none';
 
     startAutoSync();
     renderDashboard();
     updateBadges();
-    showToast('☁ Supabase connecté ✓');
+    showToast('☁ Connecté — '+email);
 
   } catch(e){
-    let msg = e.message||'Erreur inconnue';
-    if(msg==='TABLE_MISSING'){
-      msg = `Table "store" introuvable.<br/><br/>
-      <strong>Dans Supabase → SQL Editor, exécutez :</strong><br/>
-      <code style="display:block;background:#f1f5f9;padding:8px;border-radius:6px;margin-top:6px;font-size:.75rem;white-space:pre;">
-create table store (key text primary key, value text);
-alter table store enable row level security;
-create policy "allow all" on store for all using (true) with check (true);</code>`;
-    }
+    let msg = e.message;
+    if(msg.includes('Invalid login') || msg.includes('invalid_grant')) msg = 'Email ou mot de passe incorrect.';
+    if(msg.includes('Email not confirmed')) msg = 'Confirmez votre email avant de vous connecter.';
     showStatus('⚠ '+msg,'error');
-    if(btn){ btn.disabled=false; btn.textContent='☁ Connecter'; btn.style.opacity='1'; }
-    sbUrl=''; sbKey='';
+    btn.disabled=false; btn.textContent='Se connecter'; btn.style.opacity='1';
   }
 }
 
-function setSbStatus(msg, type='loading'){
-  const el = document.getElementById('sb-status');
-  if(!el) return;
-  const s = {
-    loading:'background:#fefce8;border:1px solid #fde68a;color:#854d0e;',
-    success:'background:#dcfce7;border:1px solid #bbf7d0;color:#166534;',
-    error:  'background:#fee2e2;border:1px solid #fecaca;color:#991b1b;',
-  };
-  el.style.cssText='display:block;border-radius:10px;padding:11px 14px;font-size:.83rem;line-height:1.6;'+(s[type]||s.loading);
-  el.innerHTML=msg;
-}
-
+// ── UI HELPERS ────────────────────────────────────────────────────
 function skipCloud(){
-  saveAuth({local:true});
+  const s = getSavedSession();
+  saveSession({...(s||{}), local:true});
   useCloud = false;
   const card = document.getElementById('supabase-config-card');
-  if(card) card.style.display = 'none';
-  // Set date and render without triggering card again
+  if(card) card.style.display='none';
   const now = new Date();
-  const opts = {weekday:'long',year:'numeric',month:'long',day:'numeric'};
-  document.getElementById('topbar-date').textContent = now.toLocaleDateString('fr-FR', opts);
+  document.getElementById('topbar-date').textContent = now.toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('sidebar-date').textContent = now.getFullYear();
-  renderDashboard();
-  updateBadges();
-  setBadge('local');
+  renderDashboard(); updateBadges(); setBadge('local');
 }
 
-function setBadge(state){
-  const b=document.getElementById('cloud-badge'); if(!b) return;
-  b.className='cloud-badge '+state;
-  const a=getSavedAuth();
-  b.innerHTML=state==='online'?'☁ Supabase':state==='loading'?'↻ Sync...':'💾 Local';
-  const lb = document.getElementById('logout-btn');
-  if(lb) lb.style.display = state==='online' ? 'flex':'none';
-  const mlb=document.getElementById('mobile-logout-btn');
-  if(mlb) mlb.style.display=state==='online'?'block':'none';
+function setBadge(state, label=''){
+  const b = document.getElementById('cloud-badge'); if(!b) return;
+  b.className = 'cloud-badge '+state;
+  b.innerHTML = state==='online'?'☁ '+(label||'Connecté'):state==='loading'?'↻ Sync...':'💾 Local';
+  const lb  = document.getElementById('logout-btn');
+  const mlb = document.getElementById('mobile-logout-btn');
+  if(lb)  lb.style.display  = state==='online'?'flex':'none';
+  if(mlb) mlb.style.display = state==='online'?'block':'none';
 }
 
 function showCloudScreen(){
   const card = document.getElementById('supabase-config-card');
-  if(card) card.style.display = 'flex';
-  const a = getSavedAuth();
-  if(a?.url){ const el=document.getElementById('sb-url'); if(el) el.value=a.url; }
-  if(a?.key){ const el=document.getElementById('sb-key'); if(el) el.value=a.key; }
+  if(card) card.style.display='flex';
+  const s = getSavedSession();
+  if(s?.email){ const el=document.getElementById('login-email'); if(el) el.value=s.email; }
 }
 
 function logout(){
   if(!confirm('Se déconnecter ?')) return;
-  localStorage.removeItem(CLOUD_KEY);
-  useCloud=false; sbUrl=''; sbKey='';
+  const s = getSavedSession();
+  // Keep url/key but clear tokens
+  if(s?.url) saveSession({url:s.url, key:s.key});
+  else clearSession();
+  useCloud=false; sbAccessToken=''; sbRefreshToken='';
   if(autoSyncInterval){ clearInterval(autoSyncInterval); autoSyncInterval=null; }
   setTimeout(()=>location.reload(), 300);
+}
+
+function showSbConfig(){
+  const s = getSavedSession();
+  if(s?.url){ const el=document.getElementById('config-sb-url'); if(el) el.value=s.url; }
+  if(s?.key){ const el=document.getElementById('config-sb-key'); if(el) el.value=s.key; }
+  openModal('modal-sb-config');
+}
+
+function saveSbConfig(){
+  const url = document.getElementById('config-sb-url').value.trim().replace(/\/$/,'');
+  const key = document.getElementById('config-sb-key').value.trim();
+  if(!url||!key){ showToast('⚠ Entrez l\'URL et la clé','error'); return; }
+  const s = getSavedSession();
+  saveSession({...(s||{}), url, key});
+  SB_URL = url; SB_ANON_KEY = key;
+  closeModal('modal-sb-config');
+  showToast('✓ Configuration sauvegardée');
 }
 
 let autoSyncInterval=null;
 function startAutoSync(){
   if(autoSyncInterval) clearInterval(autoSyncInterval);
-  autoSyncInterval=setInterval(async()=>{
-    if(!useCloud) return;
-    try{ await sbPushAll(); }catch(e){}
+  autoSyncInterval = setInterval(async()=>{
+    if(!useCloud || !sbAccessToken) return;
+    try{ await sbPushAll(); }
+    catch(e){
+      const ok = await sbRefreshSession();
+      if(ok) await sbPushAll().catch(()=>{});
+    }
   }, 45000);
 }
 
@@ -2099,37 +2087,86 @@ async function init(){
   badge.id = 'cloud-badge';
   badge.className = 'cloud-badge local';
   badge.innerHTML = '💾 Local';
-  badge.title = 'Cliquez pour configurer le cloud';
+  badge.title = 'Cliquez pour vous connecter';
   badge.onclick = showCloudScreen;
   topbarRight.prepend(badge);
 
-  const auth = getSavedAuth();
-  if(auth && auth.url && auth.key){
-    // Reconnect to Supabase automatically
-    sbUrl = auth.url;
-    sbKey = auth.key;
+  const s = getSavedSession();
+
+  if(s?.access_token && s?.url && s?.key){
+    // Has saved session — try to reconnect automatically
+    SB_URL = s.url;
+    SB_ANON_KEY = s.key;
+    sbAccessToken  = s.access_token;
+    sbRefreshToken = s.refresh_token || '';
     try{
       setBadge('loading');
-      await sbInit();
+      // Try pull with existing token
       await sbPull();
-      await sbPushAll();
       useCloud = true;
-      setBadge('online');
+      setBadge('online', s.email||'');
       startAutoSync();
     } catch(e){
-      setBadge('local');
+      // Token expired — try refresh
+      const ok = await sbRefreshSession();
+      if(ok){
+        await sbPull().catch(()=>{});
+        useCloud = true;
+        setBadge('online', s.email||'');
+        startAutoSync();
+      } else {
+        setBadge('local');
+      }
     }
     launchApp();
-  } else {
-    // Pre-fill if partial config saved
-    if(auth?.url){ const el=document.getElementById('sb-url'); if(el) el.value=auth.url; }
-    if(auth?.key){ const el=document.getElementById('sb-key'); if(el) el.value=auth.key; }
+  } else if(s?.local){
+    // User chose local mode
     launchApp();
+  } else if(s?.url && s?.key){
+    // Has config but no token — show login screen
+    SB_URL = s.url;
+    SB_ANON_KEY = s.key;
+    launchApp();
+    showCloudScreen();
+  } else {
+    // First time — show login screen
+    launchApp();
+    showCloudScreen();
   }
 }
 
 init();
+
+init();
 </script>
+<!-- MODAL: SUPABASE CONFIG (one-time setup) -->
+<div class="modal-overlay" id="modal-sb-config">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head">
+      <h3>⚙ Configuration Supabase</h3>
+      <button class="modal-close" onclick="closeModal('modal-sb-config')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--bg2);border-radius:10px;padding:12px 14px;font-size:.8rem;margin-bottom:16px;line-height:1.8;">
+        À faire <strong>une seule fois</strong> sur chaque appareil.<br/>
+        Trouvez ces infos dans <strong>Supabase → Settings → Data API</strong>.
+      </div>
+      <div class="form-group">
+        <label>API URL (Project URL)</label>
+        <input type="text" id="config-sb-url" placeholder="https://xxxx.supabase.co"/>
+      </div>
+      <div class="form-group">
+        <label>Anon Public Key</label>
+        <input type="password" id="config-sb-key" placeholder="eyJhbGci..."/>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('modal-sb-config')">Annuler</button>
+        <button class="btn btn-primary" onclick="saveSbConfig()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: IMPORT RESULT -->
 <div class="modal-overlay" id="modal-import">
   <div class="modal" style="max-width:520px;">

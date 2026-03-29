@@ -317,7 +317,7 @@ tbody tr:hover td{background:var(--bg);}
     <button class="nav-item" onclick="showPage('stock')">
       <span class="nav-icon">≡</span><span>Stock & Rapports</span>
     </button>
-    <div class="nav-section-label">Système</div>
+    <div class="nav-section-label">Corbeille</div>
     <button class="nav-item" onclick="showPage('trash')">
       <span class="nav-icon">🗑</span><span>Corbeille</span>
       <span class="nav-badge" id="badge-trash">0</span>
@@ -362,12 +362,33 @@ tbody tr:hover td{background:var(--bg);}
     <span class="bn-icon">≡</span>
     <span>Stock</span>
   </button>
-  <button class="bottom-nav-item" onclick="showPage('trash')" id="bn-trash">
-    <span class="bn-icon">🗑</span>
-    <span>Corbeille</span>
-    <span class="bottom-nav-badge" id="bn-badge-trash" style="display:none"></span>
+  <button class="bottom-nav-item" onclick="toggleMobileMenu()" id="bn-more">
+    <span class="bn-icon">⋯</span>
+    <span>Plus</span>
   </button>
 </nav>
+
+<!-- MOBILE MORE MENU -->
+<div id="mobile-more-menu" style="display:none;position:fixed;bottom:60px;left:0;right:0;z-index:300;padding:12px;">
+  <div style="background:var(--dark);border-radius:16px;overflow:hidden;box-shadow:0 -4px 30px rgba(0,0,0,.3);">
+    <button onclick="showPage('trash');toggleMobileMenu()" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 18px;background:none;border:none;border-bottom:1px solid rgba(255,255,255,.07);color:rgba(255,255,255,.7);font-family:var(--font-body);font-size:.88rem;cursor:pointer;">
+      <span>🗑</span> Corbeille
+      <span id="bn-badge-trash-menu" style="margin-left:auto;background:var(--red);color:#fff;font-size:.6rem;font-weight:700;min-width:18px;height:18px;border-radius:50px;display:none;align-items:center;justify-content:center;padding:0 4px;"></span>
+    </button>
+    <button onclick="showCloudScreen();toggleMobileMenu()" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 18px;background:none;border:none;border-bottom:1px solid rgba(255,255,255,.07);color:var(--accent-xl);font-family:var(--font-body);font-size:.88rem;cursor:pointer;">
+      <span>☁</span> Se connecter
+    </button>
+    <button onclick="showSbConfig();toggleMobileMenu()" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 18px;background:none;border:none;border-bottom:1px solid rgba(255,255,255,.07);color:rgba(255,255,255,.5);font-family:var(--font-body);font-size:.82rem;cursor:pointer;">
+      <span>⚙</span> Config Supabase
+    </button>
+    <button id="mobile-logout-btn" onclick="logout()" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 18px;background:none;border:none;color:#f87171;font-family:var(--font-body);font-size:.88rem;cursor:pointer;">
+      <span>⎋</span> Se déconnecter
+    </button>
+    <button onclick="toggleMobileMenu()" style="display:flex;align-items:center;justify-content:center;width:100%;padding:12px;background:none;border:none;color:rgba(255,255,255,.3);font-family:var(--font-body);font-size:.8rem;cursor:pointer;">
+      Fermer ✕
+    </button>
+  </div>
+</div>
 
 <!-- MAIN -->
 <main class="main">
@@ -1813,6 +1834,21 @@ function deleteAll(type){
 // ── TRASH ──────────────────────────────────────────────────────────
 function getTrash(type){ return DB.get('trash_'+type); }
 
+function toggleMobileMenu(){
+  const menu = document.getElementById('mobile-more-menu');
+  if(!menu) return;
+  menu.style.display = menu.style.display==='none' ? 'block' : 'none';
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', e=>{
+  const menu = document.getElementById('mobile-more-menu');
+  const btn  = document.getElementById('bn-more');
+  if(menu && btn && !menu.contains(e.target) && !btn.contains(e.target)){
+    menu.style.display = 'none';
+  }
+});
+
 function updateBadges(){
   const pc = getProducts().length;
   const ac = getAchats().length;
@@ -1832,6 +1868,9 @@ function updateBadges(){
   setBn('bn-badge-achats',   ac);
   setBn('bn-badge-ventes',   vc);
   setBn('bn-badge-trash',    tc);
+  // Mobile menu trash badge
+  const tmenu = document.getElementById('bn-badge-trash-menu');
+  if(tmenu){ tmenu.textContent=tc; tmenu.style.display=tc>0?'flex':'none'; }
   // Refresh alerts
   checkStockAlerts();
 }

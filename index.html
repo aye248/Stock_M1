@@ -874,7 +874,8 @@ tbody tr:hover td{background:var(--bg);}
       <div class="form-row">
         <div class="form-group">
           <label>Quantité</label>
-          <input type="number" id="v-qty" placeholder="1" min="1" oninput="calcVenteTotal()"/>
+          <input type="number" id="v-qty" placeholder="Stock disponible" min="1" oninput="calcVenteTotal()"/>
+          <div id="v-stock-info" style="font-size:.75rem;color:var(--muted);margin-top:4px;display:none;"></div>
         </div>
         <div class="form-group">
           <label>Prix de Vente (DT)</label>
@@ -1358,6 +1359,10 @@ function closeModal(id){
   if(id==='modal-vente'){
     ['vente-edit-id','v-date','v-qty','v-prix','v-total'].forEach(f=>document.getElementById(f).value='');
     document.getElementById('v-product').value='';
+    const infoEl = document.getElementById('v-stock-info');
+    if(infoEl){ infoEl.style.display='none'; }
+    const qtyEl = document.getElementById('v-qty');
+    if(qtyEl){ qtyEl.placeholder='Stock disponible'; qtyEl.removeAttribute('max'); }
     document.getElementById('modal-vente').querySelector('h3').textContent='Enregistrer une Vente';
   }
 }
@@ -1532,7 +1537,31 @@ function renderVentes(){
 function fillVenteProduct(){
   const pid = document.getElementById('v-product').value;
   const p = getProducts().find(x=>x.id===pid);
-  if(p && p.prixVente) document.getElementById('v-prix').value = p.prixVente;
+  const infoEl = document.getElementById('v-stock-info');
+  const qtyEl  = document.getElementById('v-qty');
+
+  if(p){
+    if(p.prixVente) document.getElementById('v-prix').value = p.prixVente;
+    const stock = getStockForProduct(p.id, p.stock);
+    // Update placeholder and info
+    qtyEl.placeholder = 'Max: '+stock;
+    qtyEl.max = stock;
+    if(infoEl){
+      if(stock === 0){
+        infoEl.style.display = 'block';
+        infoEl.style.color = 'var(--red)';
+        infoEl.innerHTML = '🚫 Stock disponible : <strong>0</strong> — produit en rupture';
+      } else {
+        infoEl.style.display = 'block';
+        infoEl.style.color = stock <= 2 ? 'var(--amber)' : 'var(--accent)';
+        infoEl.innerHTML = `📦 Stock disponible : <strong>${stock}</strong> unité${stock>1?'s':''}`;
+      }
+    }
+  } else {
+    qtyEl.placeholder = 'Stock disponible';
+    qtyEl.removeAttribute('max');
+    if(infoEl) infoEl.style.display = 'none';
+  }
   calcVenteTotal();
 }
 function calcVenteTotal(){
